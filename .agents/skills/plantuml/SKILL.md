@@ -1,3 +1,8 @@
+---
+name: plantuml-diagram-skill
+description: Quy chuẩn và quy trình vẽ biểu đồ bằng PlantUML (Sequence Diagram, Activity Diagram, Use Case Diagram).
+---
+
 # Skill: Vẽ Biểu đồ Tuần tự & Biểu đồ Hoạt động bằng PlantUML
 
 ## 1. Mục tiêu
