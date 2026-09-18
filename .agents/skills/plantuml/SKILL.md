@@ -1,16 +1,16 @@
 ---
 name: plantuml-diagram-skill
-description: Quy chuẩn và quy trình vẽ biểu đồ bằng PlantUML (Sequence Diagram, Activity Diagram, Use Case Diagram).
+description: Quy chuẩn và quy trình vẽ biểu đồ bằng PlantUML (Sequence Diagram, Activity Diagram, Use Case Diagram, Class Diagram).
 ---
 
-# Skill: Vẽ Biểu đồ Tuần tự & Biểu đồ Hoạt động bằng PlantUML
+# Skill: Vẽ Biểu đồ UML (Sequence, Activity, Use Case, Class) bằng PlantUML
 
 ## 1. Mục tiêu
 
-Skill này hướng dẫn tạo **Sequence Diagram (Biểu đồ tuần tự)** và **Activity Diagram (Biểu đồ hoạt động)** bằng **PlantUML** theo phong cách:
+Skill này hướng dẫn tạo các biểu đồ UML gồm **Sequence Diagram (Biểu đồ tuần tự)**, **Activity Diagram (Biểu đồ hoạt động)**, **Use Case Diagram (Biểu đồ ca sử dụng)** và **Class Diagram (Biểu đồ lớp)** bằng **PlantUML** theo phong cách:
 
 - Đẹp, sạch, dễ đọc.
-- Bố cục từ trên xuống, hạn chế đường giao nhau.
+- Bố cục khoa học, hạn chế đường giao nhau.
 - Màu sắc nhẹ, chuyên nghiệp, phù hợp tài liệu môn học/đồ án.
 - Tên thành phần ngắn gọn, nhất quán.
 - Có thể copy trực tiếp vào PlantUML/VS Code/IntelliJ/Markdown có hỗ trợ PlantUML.
@@ -396,14 +396,167 @@ stop
 @enduml
 ```
 
+# 5. Skill: Class Diagram (Biểu đồ Lớp)
+
+## 5.1. Khi nào sử dụng
+Dùng Class Diagram để mô tả:
+- Cấu trúc tĩnh của hệ thống phần mềm hướng đối tượng.
+- Danh mục các lớp thực thể (Entities), lớp dịch vụ (Services), lớp điều khiển (Controllers/Routers) và đối tượng truyền tải (DTO/Schemas).
+- Thuộc tính (Attributes) kèm phạm vi truy cập (`+`, `-`, `#`), kiểu dữ liệu và các phương thức (Methods) cốt lõi.
+- Các mối quan hệ tĩnh giữa các lớp: Sở hữu chặt chẽ (Composition), Thu nạp (Aggregation), Liên kết (Association), Kế thừa (Inheritance) và Phụ thuộc (Dependency).
+
+Không nên dùng Class Diagram để nhồi nhét tất cả các hàm getter/setter hoặc mọi chi tiết nhỏ của database. Biểu đồ phải tập trung vào **ngữ nghĩa nghiệp vụ và cấu trúc phần mềm**.
+
 ---
 
-# 5. Cách làm biểu đồ dễ nhìn hơn
+## 5.2. Cấu trúc phân loại lớp nên ưu tiên
 
-## 5.1. Sequence Diagram
+Trong kiến trúc hướng đối tượng cho hệ thống quản lý công văn, ưu tiên phân tầng rõ rệt:
+
+```text
+Controller / Router (Giao tiếp API)
+        ↓  <<calls>>
+Service / Control (Xử lý nghiệp vụ & Điều phối AI)
+        ↓  <<manages>>
+Entity / Model (Dữ liệu thực thể lưu trữ)
+```
+
+- `<<Entity>>`: Đại diện cho đối tượng lưu trữ thông tin (`User`, `Document`, `Attachment`, `TaskAssignment`).
+- `<<Service>>`: Chứa logic nghiệp vụ và gọi mô hình AI (`DocumentService`, `AIService`, `TaskService`).
+- `<<Controller>>` hoặc `<<Router>>`: Điểm tiếp nhận request từ giao diện.
+- `<<DTO>>`: Cấu trúc dữ liệu trao đổi hoặc kết quả AI trả về (`MetadataDTO`, `SummaryDTO`).
+
+---
+
+## 5.3. Phong cách hình ảnh & Skinparam chuẩn cho Class Diagram
+Ưu tiên phong cách tối giản, học thuật, tắt các biểu tượng icon tròn mặc định của PlantUML (`classAttributeIconSize 0`) và bo góc nhẹ:
+
+```plantuml
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+skinparam RoundCorner 8
+skinparam defaultFontName Arial
+skinparam defaultFontSize 13
+skinparam classAttributeIconSize 0
+
+skinparam class {
+    BackgroundColor #F8FAFC
+    BorderColor #475569
+    ArrowColor #334155
+    HeaderBackgroundColor #E2E8F0
+}
+
+skinparam package {
+    BackgroundColor #FAFAFA
+    BorderColor #94A3B8
+    FontColor #0F172A
+    FontStyle bold
+}
+```
+
+---
+
+## 5.4. Quy ước ký hiệu quan hệ chuẩn UML trong PlantUML
+
+| Quan hệ | Ý nghĩa & Bản chất | Cú pháp PlantUML | Ví dụ trong Quản lý công văn |
+|---|---|:---:|---|
+| **Inheritance** | Kế thừa / Khái quát hóa | `<|--` | `BaseUser <|-- Clerk` |
+| **Realization** | Hiện thực hóa Interface | `<|..` | `IAIService <|.. LocalAIService` |
+| **Composition** | Sở hữu chặt (Nếu cha bị xoá, con bị xoá theo) | `*--` | `Document "1" *-- "1..*" Attachment` *(Xoá công văn thì xoá tệp đính kèm)* |
+| **Aggregation** | Thu nạp (Tồn tại độc lập) | `o--` | `Department "1" o-- "0..*" User` *(Phòng ban giải thể, người dùng vẫn tồn tại)* |
+| **Association** | Liên kết thông thường có chỉ số bội | `-->` hoặc `--` | `User "1" --> "0..*" TaskAssignment : "giao/nhận"` |
+| **Dependency** | Phụ thuộc sử dụng tạm thời | `..>` | `DocumentService ..> AIService : "gọi bóc tách/tóm tắt"` |
+
+---
+
+## 5.5. Quy tắc viết Thuộc tính và Phương thức
+
+- **Phạm vi truy cập (Visibility)**:
+  - `-` : `Private` (dùng cho hầu hết thuộc tính dữ liệu).
+  - `+` : `Public` (dùng cho các phương thức nghiệp vụ).
+  - `#` : `Protected` (dùng cho lớp cha kế thừa).
+- **Cú pháp**:
+  - Thuộc tính: `<visibility> <tên_thuộc_tính>: <kiểu_dữ_liệu>` (Ví dụ: `- document_number: str`, `- deadline: datetime`).
+  - Phương thức: `<visibility> <tên_phương_thức>(<tham_số>: <kiểu>): <kiểu_trả_về>` (Ví dụ: `+ update_status(new_status: str): void`).
+- **Ngắn gọn & Đúng nghiệp vụ**: Không đưa các hàm phụ trợ linh tinh (như getter, setter, toString) vào sơ đồ để tránh rối mắt.
+
+---
+
+## 5.6. Dùng `package` để phân nhóm module
+
+Khi số lượng lớp trên 6 lớp, bắt buộc dùng `package` để gom nhóm:
+
+```plantuml
+package "Quản lý Người dùng & Phân quyền" {
+    class User
+    class Role
+    class Department
+}
+
+package "Nghiệp vụ Công văn & Tệp" {
+    class Document
+    class Attachment
+}
+```
+
+---
+
+## 5.7. Template Class Diagram chuẩn đẹp
+
+```plantuml
+@startuml
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+skinparam RoundCorner 8
+skinparam defaultFontName Arial
+skinparam defaultFontSize 13
+skinparam classAttributeIconSize 0
+
+skinparam class {
+    BackgroundColor #F8FAFC
+    BorderColor #475569
+    ArrowColor #334155
+    HeaderBackgroundColor #E2E8F0
+}
+
+' Lớp AI được tô màu nhận diện riêng
+class AIService <<Service>> #FEF2F2 {
+    + extract_metadata(document_text: str): MetadataDTO
+    + summarize_text(document_text: str): str
+    + generate_draft(original_text: str, instruction: str): str
+}
+
+class Document {
+    - id: int
+    - document_number: str
+    - title: str
+    - deadline: datetime
+    + add_attachment(file: Attachment): void
+    + update_status(new_status: str): void
+    + is_overdue(): bool
+}
+
+class Attachment {
+    - id: int
+    - file_name: str
+    - file_path: str
+    - file_size: int
+}
+
+' Quan hệ
+Document "1" *-- "1..*" Attachment : "chứa tệp"
+Document ..> AIService : "gọi xử lý"
+
+@enduml
+```
+
+---
+
+# 6. Cách làm biểu đồ dễ nhìn hơn
+
+## 6.1. Sequence Diagram
 
 Nên:
-
 - Giới hạn 5–7 participant.
 - Chia luồng thành `group`, `alt`, `opt`, `loop`.
 - `activate/deactivate` cho service chính.
@@ -423,10 +576,9 @@ group Xử lý chính
 end
 ```
 
-## 5.2. Activity Diagram
+## 6.2. Activity Diagram
 
 Nên:
-
 - Một luồng chính rõ ràng.
 - Mỗi action chỉ chứa một hành động.
 - Điều kiện viết dưới dạng câu hỏi.
@@ -434,9 +586,18 @@ Nên:
 - Dùng `partition` khi muốn cho thấy trách nhiệm của Actor.
 - Không nhồi quá nhiều chữ vào mỗi node.
 
+## 6.3. Class Diagram
+
+Nên:
+- **Giới hạn số lượng lớp**: Tối đa 7–10 lớp trong một sơ đồ tổng quan. Nếu hệ thống lớn, tách thành: *Mô hình lớp miền (Domain)*, *Mô hình lớp phân hệ Quản lý công văn*, *Mô hình lớp phân hệ Phân công & AI*.
+- **Hạn chế đường giao nhau**: Sắp xếp lớp cha ở trên, lớp con ở dưới; Service ở trên, Entity ở dưới; tránh kéo các đường liên kết cắt chéo nhau.
+- **Dùng package**: Nhóm các thực thể có liên quan mật thiết vào chung một khối hình chữ nhật (`package`).
+- **Ghi rõ chỉ số bội (Multiplicity)**: Luôn ghi rõ `1`, `0..*`, `1..*` ở hai đầu quan hệ để người đọc nắm được quy tắc nghiệp vụ (ví dụ: 1 công văn chứa 1..* tệp đính kèm).
+- **Phân màu lớp AI**: Sử dụng màu nền pastel riêng (như `#FEF2F2`) cho `AIService` để làm nổi bật tính năng công nghệ của đề tài.
+
 ---
 
-# 6. Template dành riêng cho hệ thống quản lý công văn tích hợp AI
+# 7. Template dành riêng cho hệ thống quản lý công văn tích hợp AI
 
 ## 6.1. Sequence: AI đề xuất đơn vị xử lý
 
@@ -587,7 +748,155 @@ stop
 
 ---
 
-# 7. Checklist trước khi xuất biểu đồ
+## 7.3. Class Diagram: Mô hình lớp thực thể cốt lõi cho Hệ thống Quản lý Công văn tích hợp AI
+
+```plantuml
+@startuml
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+skinparam RoundCorner 8
+skinparam defaultFontName Arial
+skinparam defaultFontSize 13
+skinparam classAttributeIconSize 0
+
+skinparam class {
+    BackgroundColor #F8FAFC
+    BorderColor #475569
+    ArrowColor #334155
+    HeaderBackgroundColor #E2E8F0
+}
+
+skinparam package {
+    BackgroundColor #FAFAFA
+    BorderColor #94A3B8
+    FontColor #0F172A
+    FontStyle bold
+}
+
+' Lớp AI được tô màu nhận diện riêng
+class AIService <<Service>> #FEF2F2 {
+    + extract_metadata(document_text: str): MetadataDTO
+    + summarize_text(document_text: str): str
+    + suggest_classification(document_text: str): ClassificationDTO
+    + generate_draft(original_text: str, instruction: str): str
+    + perform_ocr(file_bytes: bytes): str
+}
+
+package "Quản lý Người dùng & Cơ quan" {
+    class Department {
+        - id: int
+        - code: str
+        - name: str
+        + get_members(): List<User>
+    }
+
+    class Role {
+        - id: int
+        - code: str
+        - name: str
+    }
+
+    class User {
+        - id: int
+        - username: str
+        - full_name: str
+        - email: str
+        - is_active: bool
+        + authenticate(password: str): bool
+        + has_role(role_code: str): bool
+    }
+}
+
+package "Nghiệp vụ Công văn & Tệp đính kèm" {
+    class Document {
+        - id: int
+        - document_number: str
+        - title: str
+        - document_type: str
+        - issued_date: date
+        - urgency: str
+        - status: str
+        - ai_summary: str
+        - deadline: datetime
+        + add_attachment(file: Attachment): void
+        + update_status(new_status: str): void
+        + is_overdue(): bool
+    }
+
+    class Attachment {
+        - id: int
+        - file_name: str
+        - file_path: str
+        - file_size: int
+        - extracted_text: str
+    }
+}
+
+package "Phân công, Phản hồi & Cảnh báo" {
+    class TaskAssignment {
+        - id: int
+        - instruction: str
+        - deadline: datetime
+        - status: str
+        - created_at: datetime
+        + update_status(new_status: str): void
+        + is_deadline_near(): bool
+    }
+
+    class DraftResponse {
+        - id: int
+        - content: str
+        - is_ai_generated: bool
+        - is_approved: bool
+        - approval_note: str
+        + edit_content(text: str): void
+        + approve(leader_id: int): void
+        + reject(leader_id: int, reason: str): void
+    }
+
+    class Notification {
+        - id: int
+        - title: str
+        - message: str
+        - is_read: bool
+        - created_at: datetime
+        + mark_as_read(): void
+    }
+}
+
+' --- Quan hệ giữa các lớp ---
+Department "1" o-- "0..*" User : "chứa"
+Role "1" <-- "0..*" User : "gán vai trò"
+
+User "1" --> "0..*" Document : "tiếp nhận/tạo"
+Document "1" *-- "1..*" Attachment : "chứa tệp"
+
+Document "1" o-- "0..*" TaskAssignment : "được phân công"
+User "1" --> "0..*" TaskAssignment : "lãnh đạo giao"
+User "1" --> "0..*" TaskAssignment : "chuyên viên nhận"
+
+TaskAssignment "1" *-- "0..*" DraftResponse : "sinh dự thảo"
+User "1" --> "0..*" DraftResponse : "soạn thảo"
+
+User "1" --> "0..*" Notification : "nhận cảnh báo"
+Document "1" <-- "0..*" Notification : "liên quan"
+
+Document ..> AIService : "gọi bóc tách/tóm tắt"
+DraftResponse ..> AIService : "sinh nội dung"
+Attachment ..> AIService : "bóc tách OCR"
+
+@enduml
+```
+
+---
+
+# 8. Checklist trước khi xuất biểu đồ
+
+## Class Diagram
+- [ ] Đã tắt icon tròn mặc định (`classAttributeIconSize 0`).
+- [ ] Thuộc tính và phương thức có đầy đủ phạm vi truy cập (+, -, #).
+- [ ] Phân biệt đúng giữa Composition (*--), Aggregation (o--), Association (-->).
+- [ ] Không nhồi nhét quá nhiều chi tiết làm rối biểu đồ.
 
 ## Sequence Diagram
 
@@ -614,7 +923,7 @@ stop
 
 ---
 
-# 8. Prompt nội bộ để AI tự sinh PlantUML
+# 9. Prompt nội bộ để AI tự sinh PlantUML
 
 Khi được yêu cầu tạo Sequence Diagram:
 
@@ -645,9 +954,24 @@ Luồng chính phải nổi bật, nhánh ngoại lệ rõ ràng.
 Chỉ trả về một block @startuml ... @enduml.
 ```
 
+Khi được yêu cầu tạo Class Diagram:
+
+```text
+Hãy tạo Class Diagram bằng PlantUML.
+Ưu tiên bố cục gọn gàng, nền trắng, shadowing false,
+font Arial, RoundCorner 8, màu pastel nhẹ, classAttributeIconSize 0.
+Sắp xếp các lớp theo package module rõ ràng.
+Hiển thị thuộc tính kèm phạm vi truy cập (+, -) và kiểu dữ liệu.
+Hiển thị các phương thức nghiệp vụ cốt lõi kèm kiểu trả về.
+Dùng đúng ký hiệu quan hệ UML: Composition (*--), Aggregation (o--), Association (-->), Dependency (..>).
+Luôn ghi rõ chỉ số bội (1, 0..*, 1..*) ở hai đầu quan hệ.
+Tô màu nền riêng (#FEF2F2) cho các lớp dịch vụ AI.
+Chỉ trả về một block @startuml ... @enduml.
+```
+
 ---
 
-# 9. Quy ước đặt tên đề xuất
+# 10. Quy ước đặt tên đề xuất
 
 | Loại | Quy ước |
 |---|---|
@@ -658,10 +982,14 @@ Chỉ trả về một block @startuml ... @enduml.
 | Database | `Database` |
 | Action | Động từ + đối tượng: `Tải công văn`, `Lưu dữ liệu`, `Phân tích nội dung` |
 | Condition | Câu hỏi: `Dữ liệu hợp lệ?`, `Đã hoàn thành?` |
+| Class Name | Danh từ, PascalCase: `Document`, `Attachment`, `TaskAssignment`, `AIService` |
+| Attribute | Danh từ, snake_case hoặc camelCase: `document_number`, `deadline`, `status` |
+| Method | Động từ + danh từ: `add_attachment()`, `update_status()`, `is_overdue()` |
+| Package | Tên cụm danh từ nghiệp vụ: `Quản lý Người dùng`, `Nghiệp vụ Công văn` |
 
 ---
 
-# 10. Kết quả mong muốn
+# 11. Kết quả mong muốn
 
 Mỗi biểu đồ được tạo theo skill này phải đạt 4 tiêu chí:
 
