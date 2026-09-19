@@ -1,0 +1,103 @@
+@startuml UseCase_HeThongQuanLyCongVanAI
+left to right direction
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam defaultFontSize 13
+
+skinparam actor {
+    BackgroundColor #E8F0FE
+    BorderColor #1E40AF
+}
+
+skinparam usecase {
+    BackgroundColor #F8FAFC
+    BorderColor #475569
+    ArrowColor #334155
+}
+
+skinparam package {
+    BackgroundColor #FAFAFA
+    BorderColor #94A3B8
+    FontStyle bold
+}
+
+' ==========================================================
+' ACTORS
+' ==========================================================
+actor "Văn thư" as Clerk
+actor "Lãnh đạo" as Leader
+actor "Chuyên viên" as Specialist
+
+actor "Hệ thống AI" as AISystem <<Secondary System>> #FEF2F2
+
+' ==========================================================
+' SYSTEM BOUNDARY & USE CASES (ÁNH XẠ 12 FR)
+' ==========================================================
+package "Hệ thống Quản lý Công văn và Văn bản Nội bộ" {
+    
+    package "Quản trị & Tiếp nhận" {
+        usecase "UC1: Đăng nhập & Phân quyền" as UC1
+        usecase "UC2: Quản lý công văn & tệp" as UC2
+        usecase "UC12: Nhận dạng ký tự (OCR)" as UC12
+    }
+
+    package "Phân công & Giám sát" {
+        usecase "UC3: Phân công & theo dõi xử lý" as UC3
+        usecase "UC6: Nhắc nhở hạn xử lý" as UC6
+        usecase "UC11: Báo cáo thống kê" as UC11
+    }
+
+    package "Xử lý & Tra cứu" {
+        usecase "UC4: Cập nhật trạng thái xử lý" as UC4
+        usecase "UC5: Tra cứu văn bản" as UC5
+    }
+
+    package "Trợ lý AI Hỗ trợ Xử lý" {
+        usecase "UC7: AI trích xuất thông tin" as UC7
+        usecase "UC8: AI tóm tắt văn bản" as UC8
+        usecase "UC9: AI phân loại & gợi ý ưu tiên" as UC9
+        usecase "UC10: AI sinh dự thảo phản hồi" as UC10
+    }
+}
+
+' ==========================================================
+' LIÊN KẾT ACTOR VỚI USE CASES
+' ==========================================================
+' Quyền chung
+Clerk --> UC1
+Leader --> UC1
+Specialist --> UC1
+
+Clerk --> UC5
+Leader --> UC5
+Specialist --> UC5
+
+' Nghiệp vụ Văn thư
+Clerk --> UC2
+Clerk --> UC7
+Clerk --> UC9
+Clerk --> UC12
+
+' Nghiệp vụ Lãnh đạo
+Leader --> UC3
+Leader --> UC8
+Leader --> UC11
+
+' Nghiệp vụ Chuyên viên
+Specialist --> UC4
+Specialist --> UC10
+
+' Hệ thống nhắc hạn
+UC6 <-- Clerk : "nhận cảnh báo"
+UC6 <-- Leader : "nhận cảnh báo"
+UC6 <-- Specialist : "nhận cảnh báo"
+
+' Hệ thống AI (Secondary Actor hỗ trợ)
+UC7 <-- AISystem : "hỗ trợ bóc tách"
+UC8 <-- AISystem : "hỗ trợ tóm tắt"
+UC9 <-- AISystem : "hỗ trợ phân loại"
+UC10 <-- AISystem : "hỗ trợ soạn thảo"
+UC12 <-- AISystem : "hỗ trợ nhận dạng"
+
+@enduml

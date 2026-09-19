@@ -1,0 +1,78 @@
+@startuml Activity_TiepNhanVaPhanCong
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+skinparam RoundCorner 16
+skinparam defaultFontName Arial
+skinparam defaultFontSize 14
+skinparam activity {
+    BackgroundColor #F8FAFC
+    BorderColor #64748B
+    FontColor #1F2937
+    DiamondBackgroundColor #FFF4E5
+    DiamondBorderColor #D97706
+    StartColor #475569
+    EndColor #475569
+    BarColor #64748B
+    ArrowColor #4B5563
+    ArrowThickness 1.2
+}
+
+title Quy trình tiếp nhận và phân công công văn
+
+start
+
+partition "Văn thư" {
+    :Tiếp nhận công văn;
+    :Tải file lên hệ thống;
+}
+
+partition "Hệ thống" {
+    :Trích xuất thông tin công văn;
+    :Kiểm tra dữ liệu;
+}
+
+if (Dữ liệu hợp lệ?) then (Có)
+
+    partition "AI" {
+        :Phân tích nội dung;
+        :Tóm tắt văn bản;
+        :Đề xuất đơn vị xử lý;
+        :Đề xuất mức độ ưu tiên;
+    }
+
+    partition "Lãnh đạo" {
+        :Xem kết quả AI;
+        :Chọn đơn vị / người xử lý;
+        :Nhập ý kiến chỉ đạo;
+        :Thiết lập hạn xử lý;
+    }
+
+    partition "Hệ thống" {
+        :Lưu quyết định phân công;
+        :Gửi thông báo nhiệm vụ;
+    }
+
+    partition "Chuyên viên" {
+        :Tiếp nhận nhiệm vụ;
+        :Xử lý công văn;
+        :Cập nhật trạng thái;
+    }
+
+    if (Đã hoàn thành?) then (Có)
+        partition "Hệ thống" {
+            :Cập nhật trạng thái hoàn thành;
+        }
+        stop
+    else (Chưa)
+        :Tiếp tục xử lý;
+    endif
+
+else (Không)
+    partition "Hệ thống" {
+        :Hiển thị lỗi;
+        :Yêu cầu bổ sung dữ liệu;
+    }
+endif
+
+stop
+@enduml

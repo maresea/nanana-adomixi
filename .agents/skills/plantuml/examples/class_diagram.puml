@@ -1,0 +1,236 @@
+@startuml ClassDiagram_Master_Final_HeThongQuanLyCongVanAI
+' ==========================================================
+' BỘ THIẾT LẬP GIAO DIỆN CHUẨN HỌC THUẬT (MINIMAL & CLEAN)
+' ==========================================================
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+skinparam RoundCorner 8
+skinparam defaultFontName Arial
+skinparam defaultFontSize 12
+skinparam classAttributeIconSize 0
+
+skinparam class {
+    BackgroundColor #F8FAFC
+    BorderColor #475569
+    ArrowColor #334155
+    HeaderBackgroundColor #E2E8F0
+}
+
+skinparam package {
+    BackgroundColor #FAFAFA
+    BorderColor #94A3B8
+    FontColor #0F172A
+    FontStyle bold
+}
+
+' ==========================================================
+' GÓI 1: QUẢN TRỊ NGƯỜI DÙNG & TỔ CHỨC (FR1)
+' ==========================================================
+package "1. Quản trị & Người dùng" {
+    enum RoleType <<Enumeration>> {
+        CLERK
+        LEADER
+        SPECIALIST
+    }
+
+    class Department {
+        - id: int
+        - name: str
+        - code: str
+        --
+        + add_member(user: User): void
+        + get_members(): List[User]
+    }
+
+    class User {
+        - id: int
+        - username: str
+        - password_hash: str
+        - full_name: str
+        - email: str
+        - role: RoleType
+        - is_active: bool
+        --
+        + authenticate(password: str): bool
+        + get_role(): RoleType
+    }
+
+    class Notification {
+        - id: int
+        - title: str
+        - content: str
+        - is_read: bool
+        - created_at: datetime
+        --
+        + mark_as_read(): void
+    }
+}
+
+' ==========================================================
+' GÓI 2: QUẢN LÝ HỒ SƠ CÔNG VĂN (FR2, FR5, FR7, FR8, FR9)
+' ==========================================================
+package "2. Hồ sơ Công văn & Văn bản Nội bộ" {
+    enum DocumentScope <<Enumeration>> {
+        EXTERNAL
+        INTERNAL
+    }
+
+    enum DocumentType <<Enumeration>> {
+        INCOMING
+        OUTGOING
+    }
+
+    enum UrgencyLevel <<Enumeration>> {
+        NORMAL
+        URGENT
+        VERY_URGENT
+    }
+
+    enum DocumentStatus <<Enumeration>> {
+        RECEIVED
+        ASSIGNED
+        IN_PROGRESS
+        COMPLETED
+    }
+
+    class Document {
+        - id: int
+        - document_number: str
+        - title: str
+        - document_scope: DocumentScope
+        - document_type: DocumentType
+        - category: str
+        - issued_date: date
+        - sender_org: str
+        - recipient_org: str
+        - urgency: UrgencyLevel
+        - status: DocumentStatus
+        - ai_summary: str
+        --
+        + add_attachment(file: Attachment): void
+        + update_status(new_status: DocumentStatus): void
+        + confirm_classification(cat: str, urg: UrgencyLevel): void
+        + set_ai_summary(summary: str): void
+    }
+
+    class Attachment {
+        - id: int
+        - file_name: str
+        - file_path: str
+        - file_size: int
+        - file_type: str
+        - extracted_text: str
+        --
+        + get_download_url(): str
+    }
+}
+
+' ==========================================================
+' GÓI 3: PHÂN CÔNG, TIẾN ĐỘ & DỰ THẢO (FR3, FR4, FR6, FR10)
+' ==========================================================
+package "3. Phân công & Xử lý" {
+    enum TaskStatus <<Enumeration>> {
+        ASSIGNED
+        PROCESSING
+        RESOLVED
+    }
+
+    enum AlertLevel <<Enumeration>> {
+        NORMAL
+        DUE_SOON
+        OVERDUE
+    }
+
+    class TaskAssignment {
+        - id: int
+        - instruction: str
+        - deadline: datetime
+        - status: TaskStatus
+        - created_at: datetime
+        --
+        + update_progress(status: TaskStatus, note: str): void
+        + attach_draft(draft: DraftResponse): void
+        + check_deadline_warning(): AlertLevel
+    }
+
+    class DraftResponse {
+        - id: int
+        - content: str
+        - is_ai_generated: bool
+        - is_approved: bool
+        - approval_note: str
+        --
+        + edit_content(new_content: str): void
+        + submit_for_approval(): void
+        + approve(leader_id: int, note: str): void
+        + reject(leader_id: int, reason: str): void
+    }
+}
+
+' ==========================================================
+' GÓI 4: DỊCH VỤ TRÍ TUỆ NHÂN TẠO (AI SERVICES - FR7, 8, 9, 10, 12)
+' ==========================================================
+package "4. Dịch vụ AI & Nhật ký" {
+    class AIService <<Service>> #FEF2F2 {
+        + extract_text(file: Attachment): str
+        + extract_metadata(text: str): MetadataDTO
+        + summarize_text(text: str): str
+        + suggest_classification(text: str): ClassificationDTO
+        + generate_draft(original_text: str, instruction: str): str
+        + perform_ocr(file_bytes: bytes): str <<Optional>>
+    }
+
+    class ClassificationDTO <<DTO>> #F1F5F9 {
+        + suggested_category: str
+        + suggested_urgency: UrgencyLevel
+        + confidence_score: float
+        + reason: str
+    }
+
+    class MetadataDTO <<DTO>> #F1F5F9 {
+        + suggested_doc_number: str
+        + suggested_issued_date: date
+        + suggested_sender_org: str
+        + suggested_title: str
+    }
+
+    class AITaskLog {
+        - id: int
+        - task_type: str
+        - prompt_input: str
+        - raw_response: str
+        - latency_ms: int
+        - created_at: datetime
+        --
+        + log_execution(task: str, res: str, ms: int): void
+    }
+}
+
+' ==========================================================
+' ĐỊNH NGHĨA QUAN HỆ GIỮA CÁC THỰC THỂ (CHUẨN OOD THUẦN TÚY)
+' ==========================================================
+
+' 1. Tổ chức và Người dùng
+Department "1" o-- "0..*" User : "chứa cán bộ"
+User "1" --> "0..*" Notification : "nhận cảnh báo"
+
+' 2. Hồ sơ công văn & Tệp đính kèm
+Document "1" *-- "0..*" Attachment : "chứa tệp số hóa"
+
+' 3. Phân công xử lý & Dự thảo
+Document "1" -- "0..*" TaskAssignment : "được phân công"
+User "1" -- "0..*" TaskAssignment : "Lãnh đạo giao việc"
+User "1" -- "0..*" TaskAssignment : "Chuyên viên thụ lý"
+
+TaskAssignment "1" *-- "0..*" DraftResponse : "chứa dự thảo phản hồi"
+User "1" -- "0..*" DraftResponse : "Chuyên viên soạn thảo"
+TaskAssignment ..> Notification : "kích hoạt khi gần/quá hạn"
+
+' 4. Kết nối Dịch vụ AI & DTO
+Document ..> AIService : "gọi trích xuất / tóm tắt"
+DraftResponse ..> AIService : "gợi ý soạn thảo"
+AIService ..> MetadataDTO : "sinh ra"
+AIService ..> ClassificationDTO : "sinh ra"
+AIService ..> AITaskLog : "ghi nhật ký xử lý"
+
+@enduml

@@ -62,40 +62,37 @@ Bám sát 12 FR của hệ thống, danh mục lớp thực thể gồm 9 lớp 
   - `- password_hash: str` (Mật khẩu đã băm an toàn)
   - `- full_name: str` (Họ và tên cán bộ)
   - `- email: str` (Hộp thư nội bộ)
-  - `- department_id: int` (Khoá liên kết phòng ban)
+  - `- role: RoleType` (Vai trò: `CLERK`, `LEADER`, `SPECIALIST`)
   - `- is_active: bool` (Trạng thái hoạt động)
 - **Phương thức**:
   - `+ authenticate(password: str): bool`
-  - `+ get_role(): Role`
-  - `+ get_department(): Department`
+  - `+ get_role(): RoleType`
 
-### 4.2. Lớp `Document` (Công văn)
+### 4.2. Lớp `Document` (Hồ sơ Công văn & Văn bản Nội bộ)
 - **Thuộc tính**:
   - `- id: int` (Định danh văn bản)
   - `- document_number: str` (Số ký hiệu công văn)
   - `- title: str` (Trích yếu nội dung)
-  - `- document_type: DocumentType` (Loại: `INCOMING` - Đến, `OUTGOING` - Đi)
+  - `- document_scope: DocumentScope` (Phạm vi: `EXTERNAL` - Ngoài cơ quan, `INTERNAL` - Nội bộ)
+  - `- document_type: DocumentType` (Chiều: `INCOMING` - Đến, `OUTGOING` - Đi)
+  - `- category: str` (Thể loại / Lĩnh vực văn bản đã xác nhận)
   - `- issued_date: date` (Ngày ban hành)
-  - `- sender_org: str` (Cơ quan gửi)
-  - `- recipient_org: str` (Cơ quan nhận)
+  - `- sender_org: str` (Cơ quan / Đơn vị gửi)
+  - `- recipient_org: str` (Cơ quan / Đơn vị nhận)
   - `- urgency: UrgencyLevel` (Độ khẩn: `NORMAL`, `URGENT`, `VERY_URGENT`)
   - `- status: DocumentStatus` (Trạng thái: `RECEIVED`, `ASSIGNED`, `IN_PROGRESS`, `COMPLETED`)
   - `- ai_summary: str` (Tóm tắt 3-5 ý do AI sinh ra)
-  - `- deadline: datetime` (Thời hạn xử lý văn bản)
 - **Phương thức**:
   - `+ add_attachment(file: Attachment): void`
   - `+ update_status(new_status: DocumentStatus): void`
-  - `+ is_overdue(): bool`
+  - `+ confirm_classification(cat: str, urg: UrgencyLevel): void`
   - `+ set_ai_summary(summary: str): void`
 
 ### 4.3. Lớp `TaskAssignment` (Phân công xử lý)
 - **Thuộc tính**:
   - `- id: int`
-  - `- document_id: int` (Công văn cần xử lý)
-  - `- assigner_id: int` (Lãnh đạo giao việc)
-  - `- assignee_id: int` (Chuyên viên thụ lý)
   - `- instruction: str` (Ý kiến chỉ đạo vắn tắt của Lãnh đạo)
-  - `- deadline: datetime` (Hạn chót giải quyết)
+  - `- deadline: datetime` (Hạn chót giải quyết công việc)
   - `- status: TaskStatus` (Trạng thái nhiệm vụ: `ASSIGNED`, `PROCESSING`, `RESOLVED`)
   - `- created_at: datetime`
 - **Phương thức**:
@@ -106,8 +103,6 @@ Bám sát 12 FR của hệ thống, danh mục lớp thực thể gồm 9 lớp 
 ### 4.4. Lớp `DraftResponse` (Dự thảo phản hồi)
 - **Thuộc tính**:
   - `- id: int`
-  - `- task_id: int` (Thuộc nhiệm vụ phân công nào)
-  - `- author_id: int` (Chuyên viên soạn thảo)
   - `- content: str` (Nội dung văn bản theo mẫu thể thức)
   - `- is_ai_generated: bool` (Cờ đánh dấu do AI sinh)
   - `- is_approved: bool` (Lãnh đạo đã phê duyệt hay chưa)
@@ -121,11 +116,12 @@ Bám sát 12 FR của hệ thống, danh mục lớp thực thể gồm 9 lớp 
 ### 4.5. Lớp `AIService` (Dịch vụ Trí tuệ Nhân tạo - Hỗ trợ nghiệp vụ)
 - **Nhiệm vụ**: Đóng gói các hàm gọi AI, tách biệt hoàn toàn khỏi CSDL và giao diện.
 - **Phương thức**:
-  - `+ extract_metadata(document_text: str): DocumentMetadataDTO` (FR7)
+  - `+ extract_text(file: Attachment): str` (Trích xuất chữ từ tệp PDF/DOCX số hóa)
+  - `+ extract_metadata(document_text: str): MetadataDTO` (FR7)
   - `+ summarize_text(document_text: str): str` (FR8: Tóm tắt 3–5 ý)
   - `+ suggest_classification(document_text: str): ClassificationDTO` (FR9)
   - `+ generate_draft(original_text: str, instruction: str): str` (FR10)
-  - `+ perform_ocr(file_bytes: bytes): str` (FR12)
+  - `+ perform_ocr(file_bytes: bytes): str <<Optional>>` (FR12 - Tùy chọn khi gặp ảnh scan)
 
 ---
 
@@ -133,17 +129,23 @@ Bám sát 12 FR của hệ thống, danh mục lớp thực thể gồm 9 lớp 
 
 Áp dụng đúng ngữ nghĩa UML cho mô hình lớp của hệ thống:
 
-1. **Association (Liên kết thông thường `-->`)**:
-   - `User` ➔ `Department`: Một người dùng thuộc về một phòng ban (`1..*` đến `1`).
-   - `TaskAssignment` ➔ `User`: Liên kết người giao (Lãnh đạo) và người nhận (Chuyên viên).
+1. **Association (Liên kết thông thường `-->` hoặc `--`)**:
+   - `Document` `--` `TaskAssignment`: Một công văn có thể có nhiều đợt phân công / phối hợp (`1` đến `0..*`).
+   - `User` `--` `TaskAssignment`: Lãnh đạo giao việc và Chuyên viên thụ lý nhiệm vụ.
+   - `User` `--` `DraftResponse`: Chuyên viên soạn thảo dự thảo phản hồi.
+   - `User` `-->` `Notification`: Người dùng nhận thông báo cảnh báo hạn (`1` đến `0..*`).
 2. **Aggregation (Quan hệ thu nạp `o--`)**:
    - `Department` `1` o-- `0..*` `User`: Phòng ban chứa các người dùng (nếu phòng ban giải thể, người dùng vẫn tồn tại).
-   - `Document` `1` o-- `0..*` `TaskAssignment`: Một công văn có thể có nhiều đợt phân công / phối hợp.
 3. **Composition (Quan hệ sở hữu chặt chẽ `*--`)**:
-   - `Document` `1` *-- `1..*` `Attachment`: Tệp đính kèm phụ thuộc hoàn toàn vào công văn; nếu xoá hồ sơ công văn thì tệp đính kèm bị xoá theo.
+   - `Document` `1` *-- `0..*` `Attachment`: Tệp đính kèm phụ thuộc hoàn toàn vào công văn; nếu xoá hồ sơ công văn thì tệp đính kèm bị xoá theo (một công văn có thể có 0 hoặc nhiều tệp đính kèm).
    - `TaskAssignment` `1` *-- `0..*` `DraftResponse`: Dự thảo phản hồi gắn liền với nhiệm vụ được giao.
 4. **Dependency (Quan hệ phụ thuộc `..>`)**:
-   - `DocumentService` ..> `AIService`: Service quản lý công văn sử dụng dịch vụ AI để trích xuất thông tin hoặc tóm tắt.
+   - `Document` ..> `AIService`: Gọi trích xuất, tóm tắt nội dung.
+   - `DraftResponse` ..> `AIService`: Gọi gợi ý soạn thảo dự thảo.
+   - `TaskAssignment` ..> `Notification`: Kích hoạt tạo thông báo khi sắp đến hạn / quá hạn.
+   - `AIService` ..> `AITaskLog`: Ghi nhật ký yêu cầu xử lý.
+5. **Quy tắc Kiểu liệt kê (Enumerations)**:
+   - Các Enum (`RoleType`, `DocumentScope`, `DocumentType`, `UrgencyLevel`, `DocumentStatus`, `TaskStatus`, `AlertLevel`) là kiểu dữ liệu giá trị (Value Types). Không vẽ đường quan hệ (`*--`, `-->`) trỏ vào Enum để giữ sơ đồ lớp luôn sạch sẽ và thoáng mắt.
 
 ## 6. Checklist Tự Đánh giá Chất lượng Mô hình Lớp (OOD Review Checklist)
 

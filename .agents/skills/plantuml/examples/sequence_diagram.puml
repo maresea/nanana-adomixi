@@ -1,0 +1,55 @@
+@startuml Sequence_AIDeXuatDonViXuLy
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+skinparam RoundCorner 12
+skinparam defaultFontName Arial
+skinparam defaultFontSize 14
+skinparam sequence {
+    ArrowColor #4B5563
+    ArrowThickness 1.2
+    LifeLineBorderColor #9CA3AF
+    LifeLineBackgroundColor #F9FAFB
+    ParticipantBorderColor #64748B
+    ParticipantBackgroundColor #F8FAFC
+    ParticipantFontColor #1F2937
+    ActorBackgroundColor #E8F0FE
+    ActorBorderColor #64748B
+    GroupBackgroundColor #F8FAFC
+    GroupBorderColor #CBD5E1
+}
+
+title AI đề xuất đơn vị xử lý công văn
+
+actor "Văn thư" as Clerk
+boundary "Giao diện công văn" as UI
+control "Document Service" as Service
+control "AI Service" as AI
+entity "Database" as DB
+
+Clerk -> UI : Tải công văn
+activate UI
+
+UI -> Service : Gửi file
+activate Service
+
+Service -> DB : Lưu file & thông tin ban đầu
+DB --> Service : Đã lưu
+
+Service -> AI : Phân tích nội dung
+activate AI
+AI --> Service : Đề xuất đơn vị xử lý\n+ mức độ ưu tiên\n+ tóm tắt
+deactivate AI
+
+Service --> UI : Trả kết quả đề xuất
+deactivate Service
+
+UI --> Clerk : Hiển thị kết quả AI
+deactivate UI
+
+note right of AI
+AI chỉ đưa ra đề xuất.
+Văn thư / lãnh đạo có thể
+kiểm tra và điều chỉnh.
+end note
+
+@enduml

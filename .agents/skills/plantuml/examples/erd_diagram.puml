@@ -1,0 +1,119 @@
+@startuml ERD_HeThongQuanLyCongVanAI
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+skinparam RoundCorner 8
+skinparam defaultFontName Arial
+skinparam defaultFontSize 12
+
+' Phong cách bảng thực thể ERD
+skinparam class {
+    BackgroundColor #F8FAFC
+    BorderColor #475569
+    HeaderBackgroundColor #E2E8F0
+}
+
+entity "departments" as departments {
+    * id : INT <<PK>>
+    --
+    * name : VARCHAR(150)
+    * code : VARCHAR(20)
+}
+
+entity "users" as users {
+    * id : INT <<PK>>
+    --
+    * username : VARCHAR(50)
+    * password_hash : VARCHAR(255)
+    * full_name : VARCHAR(100)
+    * email : VARCHAR(100)
+    * role : VARCHAR(20)
+    department_id : INT <<FK>>
+    * is_active : BOOLEAN
+    * created_at : TIMESTAMP
+}
+
+entity "documents" as documents {
+    * id : INT <<PK>>
+    --
+    * document_number : VARCHAR(50)
+    * title : TEXT
+    * document_scope : VARCHAR(20)
+    * document_type : VARCHAR(20)
+    category : VARCHAR(100)
+    * issued_date : DATE
+    * sender_org : VARCHAR(150)
+    * recipient_org : VARCHAR(150)
+    * urgency : VARCHAR(20)
+    * status : VARCHAR(20)
+    ai_summary : TEXT
+    * created_at : TIMESTAMP
+}
+
+entity "attachments" as attachments {
+    * id : INT <<PK>>
+    --
+    * document_id : INT <<FK>>
+    * file_name : VARCHAR(255)
+    * file_path : VARCHAR(500)
+    * file_size : BIGINT
+    * file_type : VARCHAR(20)
+    extracted_text : TEXT
+    * uploaded_at : TIMESTAMP
+}
+
+entity "task_assignments" as task_assignments {
+    * id : INT <<PK>>
+    --
+    * document_id : INT <<FK>>
+    * assigner_id : INT <<FK>>
+    * assignee_id : INT <<FK>>
+    instruction : TEXT
+    * deadline : DATETIME
+    * status : VARCHAR(20)
+    * created_at : TIMESTAMP
+}
+
+entity "draft_responses" as draft_responses {
+    * id : INT <<PK>>
+    --
+    * task_id : INT <<FK>>
+    * author_id : INT <<FK>>
+    * content : TEXT
+    * is_ai_generated : BOOLEAN
+    * is_approved : BOOLEAN
+    approval_note : TEXT
+    * created_at : TIMESTAMP
+    * updated_at : TIMESTAMP
+}
+
+entity "notifications" as notifications {
+    * id : INT <<PK>>
+    --
+    * user_id : INT <<FK>>
+    * title : VARCHAR(200)
+    * content : TEXT
+    * is_read : BOOLEAN
+    * created_at : TIMESTAMP
+}
+
+entity "ai_task_logs" as ai_task_logs {
+    * id : INT <<PK>>
+    --
+    * task_type : VARCHAR(50)
+    * prompt_input : TEXT
+    * raw_response : TEXT
+    * latency_ms : INT
+    * created_at : TIMESTAMP
+}
+
+' Quan hệ Crow's Foot (1 - N)
+departments ||--o{ users : "thuộc về"
+users ||--o{ notifications : "nhận"
+documents ||--o{ attachments : "chứa tệp"
+documents ||--o{ task_assignments : "được giao"
+users ||--o{ task_assignments : "giao việc (assigner)"
+users ||--o{ task_assignments : "nhận việc (assignee)"
+task_assignments ||--o{ draft_responses : "sinh dự thảo"
+users ||--o{ draft_responses : "soạn thảo"
+
+@enduml

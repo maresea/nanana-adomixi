@@ -1,13 +1,13 @@
 ---
 name: plantuml-diagram-skill
-description: Quy chuẩn và quy trình vẽ biểu đồ bằng PlantUML (Sequence Diagram, Activity Diagram, Use Case Diagram, Class Diagram).
+description: Quy chuẩn và quy trình vẽ biểu đồ bằng PlantUML (Sequence, Activity, Use Case, Class, ERD Diagram).
 ---
 
-# Skill: Vẽ Biểu đồ UML (Sequence, Activity, Use Case, Class) bằng PlantUML
+# Skill: Vẽ Biểu đồ UML & ERD (Sequence, Activity, Use Case, Class, ERD) bằng PlantUML
 
 ## 1. Mục tiêu
 
-Skill này hướng dẫn tạo các biểu đồ UML gồm **Sequence Diagram (Biểu đồ tuần tự)**, **Activity Diagram (Biểu đồ hoạt động)**, **Use Case Diagram (Biểu đồ ca sử dụng)** và **Class Diagram (Biểu đồ lớp)** bằng **PlantUML** theo phong cách:
+Skill này hướng dẫn tạo các biểu đồ UML và CSDL gồm **Sequence Diagram (Biểu đồ tuần tự)**, **Activity Diagram (Biểu đồ hoạt động)**, **Use Case Diagram (Biểu đồ ca sử dụng)**, **Class Diagram (Biểu đồ lớp)** và **ERD (Biểu đồ thực thể - quan hệ)** bằng **PlantUML** theo phong cách:
 
 - Đẹp, sạch, dễ đọc.
 - Bố cục khoa học, hạn chế đường giao nhau.
@@ -462,7 +462,7 @@ skinparam package {
 |---|---|:---:|---|
 | **Inheritance** | Kế thừa / Khái quát hóa | `<|--` | `BaseUser <|-- Clerk` |
 | **Realization** | Hiện thực hóa Interface | `<|..` | `IAIService <|.. LocalAIService` |
-| **Composition** | Sở hữu chặt (Nếu cha bị xoá, con bị xoá theo) | `*--` | `Document "1" *-- "1..*" Attachment` *(Xoá công văn thì xoá tệp đính kèm)* |
+| **Composition** | Sở hữu chặt (Nếu cha bị xoá, con bị xoá theo) | `*--` | `Document "1" *-- "0..*" Attachment` *(Xoá công văn thì xoá tệp đính kèm)* |
 | **Aggregation** | Thu nạp (Tồn tại độc lập) | `o--` | `Department "1" o-- "0..*" User` *(Phòng ban giải thể, người dùng vẫn tồn tại)* |
 | **Association** | Liên kết thông thường có chỉ số bội | `-->` hoặc `--` | `User "1" --> "0..*" TaskAssignment : "giao/nhận"` |
 | **Dependency** | Phụ thuộc sử dụng tạm thời | `..>` | `DocumentService ..> AIService : "gọi bóc tách/tóm tắt"` |
@@ -530,10 +530,8 @@ class Document {
     - id: int
     - document_number: str
     - title: str
-    - deadline: datetime
     + add_attachment(file: Attachment): void
     + update_status(new_status: str): void
-    + is_overdue(): bool
 }
 
 class Attachment {
@@ -544,7 +542,7 @@ class Attachment {
 }
 
 ' Quan hệ
-Document "1" *-- "1..*" Attachment : "chứa tệp"
+Document "1" *-- "0..*" Attachment : "chứa tệp"
 Document ..> AIService : "gọi xử lý"
 
 @enduml
@@ -552,9 +550,70 @@ Document ..> AIService : "gọi xử lý"
 
 ---
 
-# 6. Cách làm biểu đồ dễ nhìn hơn
+# 6. Skill: Use Case Diagram (Biểu đồ Ca sử dụng)
 
-## 6.1. Sequence Diagram
+## 6.1. Khi nào sử dụng
+Dùng Use Case Diagram để mô tả:
+- Ranh giới của hệ thống và phạm vi chức năng (SRS / Phân tích yêu cầu).
+- Các tác nhân (Actors) tham gia tương tác với hệ thống (cả tác nhân con người và tác nhân hệ thống thứ cấp).
+- Danh mục các ca sử dụng (Use Cases) tương ứng với các yêu cầu chức năng (FR1 đến FR12).
+- Mối quan hệ giữa Actor với Use Case (`-->`), và giữa các Use Case với nhau (`<<include>>`, `<<extend>>`).
+
+Không nên dùng Use Case Diagram để mô tả luồng dữ liệu, thuật toán chi tiết hoặc thứ tự thực hiện theo thời gian (đó là vai trò của Activity và Sequence Diagram).
+
+---
+
+## 6.2. Nguyên tắc bố cục chuẩn cho Use Case Diagram
+- **Chiều hiển thị**: Luôn dùng chỉ thị `left to right direction` để sơ đồ trải rộng từ trái sang phải, tránh kéo dài dọc gây rối mắt.
+- **Vị trí Actor**:
+  - **Tác nhân con người (Human Primary Actors)**: Đặt ở **phía ngoài cùng bên trái** (`Văn thư`, `Lãnh đạo`, `Chuyên viên`).
+  - **Tác nhân hệ thống thứ cấp (Secondary / System Actors)**: Đặt ở **phía ngoài cùng bên phải** (`Hệ thống AI`).
+- **Phân nhóm Package (System Boundary)**: Nhóm các Use Case có cùng nghiệp vụ vào các gói hình chữ nhật (`package`) rõ ràng để người đọc dễ dàng định vị phân hệ chức năng.
+- **Đặt tên Use Case**: Bắt đầu bằng động từ + danh từ (VD: `UC1: Đăng nhập & Phân quyền`, `UC8: AI tóm tắt văn bản`).
+
+---
+
+# 7. Skill: ERD Diagram (Biểu đồ Thực thể - Mối quan hệ)
+
+## 7.1. Khi nào sử dụng
+Dùng ERD (Entity Relationship Diagram) để mô tả:
+- Thiết kế cơ sở dữ liệu quan hệ (RDBMS) ở mức vật lý (Physical Data Model).
+- Danh mục các bảng dữ liệu (`entity`), các cột thuộc tính và kiểu dữ liệu SQL chuẩn (`INT`, `VARCHAR`, `TEXT`, `BOOLEAN`, `TIMESTAMP`).
+- Khóa chính (`<<PK>>`) và Khóa ngoại (`<<FK>>`).
+- Các mối quan hệ toàn vẹn giữa các bảng sử dụng ký hiệu chân quạ (**Crow's Foot Notation**).
+
+---
+
+## 7.2. Cú pháp khai báo Entity trong PlantUML
+Sử dụng cấu trúc `entity` với định dạng trực quan:
+
+```plantuml
+entity "tên_bảng" as tên_bảng {
+    * id : INT <<PK>>
+    --
+    * khóa_ngoại_id : INT <<FK>>
+    * trường_bắt_buộc : VARCHAR(100)
+    trường_tùy_chọn : TEXT
+}
+```
+- Dấu `*`: Thể hiện cột bắt buộc (`NOT NULL`).
+- Dấu `--`: Đường kẻ ngang ngăn cách giữa Khóa chính (`PK`) và các thuộc tính thông thường.
+
+---
+
+## 7.3. Ký hiệu quan hệ chân quạ (Crow's Foot Notation)
+
+| Ký hiệu PlantUML | Tên quan hệ | Ý nghĩa nghiệp vụ | Ví dụ |
+|:---:|---|---|---|
+| `||--||` | Một - Một (Bắt buộc) | Một bản ghi bên A gắn đúng 1 bản ghi bên B | `users ||--|| profiles` |
+| `||--o{` | Một - Nhiều (0 hoặc nhiều) | Một bản ghi bên A có thể có 0 hoặc nhiều bản ghi bên B | `documents ||--o{ attachments` |
+| `||--|{` | Một - Nhiều (Bắt buộc $\ge 1$) | Một bản ghi bên A bắt buộc có ít nhất 1 bản ghi bên B | `orders ||--|{ order_items` |
+
+---
+
+# 8. Cách làm biểu đồ dễ nhìn hơn
+
+## 8.1. Sequence Diagram
 
 Nên:
 - Giới hạn 5–7 participant.
@@ -576,7 +635,7 @@ group Xử lý chính
 end
 ```
 
-## 6.2. Activity Diagram
+## 8.2. Activity Diagram
 
 Nên:
 - Một luồng chính rõ ràng.
@@ -586,317 +645,70 @@ Nên:
 - Dùng `partition` khi muốn cho thấy trách nhiệm của Actor.
 - Không nhồi quá nhiều chữ vào mỗi node.
 
-## 6.3. Class Diagram
+## 8.3. Class Diagram
 
 Nên:
 - **Giới hạn số lượng lớp**: Tối đa 7–10 lớp trong một sơ đồ tổng quan. Nếu hệ thống lớn, tách thành: *Mô hình lớp miền (Domain)*, *Mô hình lớp phân hệ Quản lý công văn*, *Mô hình lớp phân hệ Phân công & AI*.
 - **Hạn chế đường giao nhau**: Sắp xếp lớp cha ở trên, lớp con ở dưới; Service ở trên, Entity ở dưới; tránh kéo các đường liên kết cắt chéo nhau.
 - **Dùng package**: Nhóm các thực thể có liên quan mật thiết vào chung một khối hình chữ nhật (`package`).
-- **Ghi rõ chỉ số bội (Multiplicity)**: Luôn ghi rõ `1`, `0..*`, `1..*` ở hai đầu quan hệ để người đọc nắm được quy tắc nghiệp vụ (ví dụ: 1 công văn chứa 1..* tệp đính kèm).
+- **Ghi rõ chỉ số bội (Multiplicity)**: Luôn ghi rõ `1`, `0..*`, `1..*` ở hai đầu quan hệ để người đọc nắm được quy tắc nghiệp vụ (ví dụ: 1 công văn chứa 0..* tệp đính kèm).
 - **Phân màu lớp AI**: Sử dụng màu nền pastel riêng (như `#FEF2F2`) cho `AIService` để làm nổi bật tính năng công nghệ của đề tài.
 
----
+## 8.4. Use Case Diagram
 
-# 7. Template dành riêng cho hệ thống quản lý công văn tích hợp AI
+Nên:
+- **Bố cục trái qua phải**: Dùng `left to right direction`.
+- **Phân nhóm chức năng**: Dùng `package` bao bọc các Use Case theo phân hệ.
+- **Tách biệt Actor**: Đặt Human Actors bên trái, System/AI Actors bên phải.
+- **Đường nối thẳng hàng**: Hạn chế để các đường liên kết của Actor cắt chéo nhau quá nhiều.
 
-## 6.1. Sequence: AI đề xuất đơn vị xử lý
+## 8.5. ERD Diagram (Mô hình Thực thể - Quan hệ)
 
-```plantuml
-@startuml
-skinparam backgroundColor #FFFFFF
-skinparam shadowing false
-skinparam RoundCorner 12
-skinparam defaultFontName Arial
-skinparam defaultFontSize 14
-skinparam sequence {
-    ArrowColor #4B5563
-    ArrowThickness 1.2
-    LifeLineBorderColor #9CA3AF
-    LifeLineBackgroundColor #F9FAFB
-    ParticipantBorderColor #64748B
-    ParticipantBackgroundColor #F8FAFC
-    ParticipantFontColor #1F2937
-    ActorBackgroundColor #E8F0FE
-    ActorBorderColor #64748B
-    GroupBackgroundColor #F8FAFC
-    GroupBorderColor #CBD5E1
-}
-
-title AI đề xuất đơn vị xử lý công văn
-
-actor "Văn thư" as Clerk
-boundary "Giao diện công văn" as UI
-control "Document Service" as Service
-control "AI Service" as AI
-entity "Database" as DB
-
-Clerk -> UI : Tải công văn
-activate UI
-
-UI -> Service : Gửi file
-activate Service
-
-Service -> DB : Lưu file & thông tin ban đầu
-DB --> Service : Đã lưu
-
-Service -> AI : Phân tích nội dung
-activate AI
-AI --> Service : Đề xuất đơn vị xử lý
-          + mức độ ưu tiên
-          + tóm tắt
- deactivate AI
-
-Service --> UI : Trả kết quả đề xuất
-deactivate Service
-
-UI --> Clerk : Hiển thị kết quả AI
-deactivate UI
-
-note right of AI
-AI chỉ đưa ra đề xuất.
-Văn thư / lãnh đạo có thể
-kiểm tra và điều chỉnh.
-end note
-
-@enduml
-```
+Nên:
+- **Dùng cú pháp `entity`**: Khai báo rõ ràng cấu trúc bảng CSDL, dùng dấu `*` cho các trường bắt buộc (`NOT NULL`) và `--` để ngăn cách phần Khóa chính (`PK`).
+- **Đánh dấu rõ vai trò khóa**: Ghi chú rõ ràng `<<PK>>` cho Khóa chính và `<<FK>>` cho Khóa ngoại.
+- **Ký hiệu chân quạ (Crow's Foot)**: Sử dụng các quan hệ `||--o{` (Một - Nhiều), `||--||` (Một - Một) để thể hiện chính xác mối quan hệ vật lý.
+- **Bố cục khoa học**: Đặt bảng cha ở phía trên hoặc bên trái, bảng con ở phía dưới hoặc bên phải để các đường nối đi thẳng tắp, hạn chế tối đa việc cắt chéo đường quan hệ.
+- **Tên bảng số nhiều**: Luôn đặt tên bảng ở dạng danh từ số nhiều và `snake_case` (ví dụ: `documents`, `attachments`, `users`).
 
 ---
 
-## 6.2. Activity: Tiếp nhận và phân công công văn
+# 9. Danh mục Biểu đồ Mẫu Hoàn chỉnh (Standard Examples)
 
-```plantuml
-@startuml
-skinparam backgroundColor #FFFFFF
-skinparam shadowing false
-skinparam RoundCorner 16
-skinparam defaultFontName Arial
-skinparam defaultFontSize 14
-skinparam activity {
-    BackgroundColor #F8FAFC
-    BorderColor #64748B
-    FontColor #1F2937
-    DiamondBackgroundColor #FFF4E5
-    DiamondBorderColor #D97706
-    StartColor #475569
-    EndColor #475569
-    BarColor #64748B
-    ArrowColor #4B5563
-    ArrowThickness 1.2
-}
+Tất cả mã nguồn PlantUML mẫu chuẩn dành riêng cho hệ thống Quản lý Công văn và Văn bản Nội bộ Tích hợp AI được lưu trữ độc lập tại thư mục [`examples/`](file:///d:/nanana-adomixi/.agents/skills/plantuml/examples/):
 
-title Quy trình tiếp nhận và phân công công văn
-
-start
-
-partition "Văn thư" {
-    :Tiếp nhận công văn;
-    :Tải file lên hệ thống;
-}
-
-partition "Hệ thống" {
-    :Trích xuất thông tin công văn;
-    :Kiểm tra dữ liệu;
-}
-
-if (Dữ liệu hợp lệ?) then (Có)
-
-    partition "AI" {
-        :Phân tích nội dung;
-        :Tóm tắt văn bản;
-        :Đề xuất đơn vị xử lý;
-        :Đề xuất mức độ ưu tiên;
-    }
-
-    partition "Lãnh đạo" {
-        :Xem kết quả AI;
-        :Chọn đơn vị / người xử lý;
-        :Nhập ý kiến chỉ đạo;
-        :Thiết lập hạn xử lý;
-    }
-
-    partition "Hệ thống" {
-        :Lưu quyết định phân công;
-        :Gửi thông báo nhiệm vụ;
-    }
-
-    partition "Chuyên viên" {
-        :Tiếp nhận nhiệm vụ;
-        :Xử lý công văn;
-        :Cập nhật trạng thái;
-    }
-
-    if (Đã hoàn thành?) then (Có)
-        partition "Hệ thống" {
-            :Cập nhật trạng thái hoàn thành;
-        }
-        stop
-    else (Chưa)
-        :Tiếp tục xử lý;
-    endif
-
-else (Không)
-    partition "Hệ thống" {
-        :Hiển thị lỗi;
-        :Yêu cầu bổ sung dữ liệu;
-    }
-endif
-
-stop
-@enduml
-```
+| STT | Tên Biểu đồ | Tệp mã nguồn (.puml) | Mục đích nghiệp vụ chính |
+|:---:|---|---|---|
+| 1 | **Use Case Diagram** | [`examples/usecase_diagram.puml`](file:///d:/nanana-adomixi/.agents/skills/plantuml/examples/usecase_diagram.puml) | Tổng quan 12 ca sử dụng (UC1–UC12), 3 Actor người dùng (Văn thư, Lãnh đạo, Chuyên viên) và 1 Actor AI thứ cấp. |
+| 2 | **Sequence Diagram** | [`examples/sequence_diagram.puml`](file:///d:/nanana-adomixi/.agents/skills/plantuml/examples/sequence_diagram.puml) | Luồng tương tác thời gian thực khi AI phân tích nội dung và đề xuất đơn vị xử lý. |
+| 3 | **Activity Diagram** | [`examples/activity_diagram.puml`](file:///d:/nanana-adomixi/.agents/skills/plantuml/examples/activity_diagram.puml) | Quy trình tiếp nhận, kiểm tra dữ liệu và phân công xử lý công văn liên phòng ban. |
+| 4 | **Class Diagram** | [`examples/class_diagram.puml`](file:///d:/nanana-adomixi/.agents/skills/plantuml/examples/class_diagram.puml) | Mô hình lớp thực thể cốt lõi (Master Final), phân tầng 4 package, loại bỏ liên kết enum thừa. |
+| 5 | **ERD Diagram** | [`examples/erd_diagram.puml`](file:///d:/nanana-adomixi/.agents/skills/plantuml/examples/erd_diagram.puml) | Thiết kế cơ sở dữ liệu vật lý 8 bảng với ký hiệu chân quạ Crow's Foot. |
 
 ---
 
-## 7.3. Class Diagram: Mô hình lớp thực thể cốt lõi cho Hệ thống Quản lý Công văn tích hợp AI
+# 10. Checklist trước khi xuất biểu đồ
 
-```plantuml
-@startuml
-skinparam backgroundColor #FFFFFF
-skinparam shadowing false
-skinparam RoundCorner 8
-skinparam defaultFontName Arial
-skinparam defaultFontSize 13
-skinparam classAttributeIconSize 0
-
-skinparam class {
-    BackgroundColor #F8FAFC
-    BorderColor #475569
-    ArrowColor #334155
-    HeaderBackgroundColor #E2E8F0
-}
-
-skinparam package {
-    BackgroundColor #FAFAFA
-    BorderColor #94A3B8
-    FontColor #0F172A
-    FontStyle bold
-}
-
-' Lớp AI được tô màu nhận diện riêng
-class AIService <<Service>> #FEF2F2 {
-    + extract_metadata(document_text: str): MetadataDTO
-    + summarize_text(document_text: str): str
-    + suggest_classification(document_text: str): ClassificationDTO
-    + generate_draft(original_text: str, instruction: str): str
-    + perform_ocr(file_bytes: bytes): str
-}
-
-package "Quản lý Người dùng & Cơ quan" {
-    class Department {
-        - id: int
-        - code: str
-        - name: str
-        + get_members(): List<User>
-    }
-
-    class Role {
-        - id: int
-        - code: str
-        - name: str
-    }
-
-    class User {
-        - id: int
-        - username: str
-        - full_name: str
-        - email: str
-        - is_active: bool
-        + authenticate(password: str): bool
-        + has_role(role_code: str): bool
-    }
-}
-
-package "Nghiệp vụ Công văn & Tệp đính kèm" {
-    class Document {
-        - id: int
-        - document_number: str
-        - title: str
-        - document_type: str
-        - issued_date: date
-        - urgency: str
-        - status: str
-        - ai_summary: str
-        - deadline: datetime
-        + add_attachment(file: Attachment): void
-        + update_status(new_status: str): void
-        + is_overdue(): bool
-    }
-
-    class Attachment {
-        - id: int
-        - file_name: str
-        - file_path: str
-        - file_size: int
-        - extracted_text: str
-    }
-}
-
-package "Phân công, Phản hồi & Cảnh báo" {
-    class TaskAssignment {
-        - id: int
-        - instruction: str
-        - deadline: datetime
-        - status: str
-        - created_at: datetime
-        + update_status(new_status: str): void
-        + is_deadline_near(): bool
-    }
-
-    class DraftResponse {
-        - id: int
-        - content: str
-        - is_ai_generated: bool
-        - is_approved: bool
-        - approval_note: str
-        + edit_content(text: str): void
-        + approve(leader_id: int): void
-        + reject(leader_id: int, reason: str): void
-    }
-
-    class Notification {
-        - id: int
-        - title: str
-        - message: str
-        - is_read: bool
-        - created_at: datetime
-        + mark_as_read(): void
-    }
-}
-
-' --- Quan hệ giữa các lớp ---
-Department "1" o-- "0..*" User : "chứa"
-Role "1" <-- "0..*" User : "gán vai trò"
-
-User "1" --> "0..*" Document : "tiếp nhận/tạo"
-Document "1" *-- "1..*" Attachment : "chứa tệp"
-
-Document "1" o-- "0..*" TaskAssignment : "được phân công"
-User "1" --> "0..*" TaskAssignment : "lãnh đạo giao"
-User "1" --> "0..*" TaskAssignment : "chuyên viên nhận"
-
-TaskAssignment "1" *-- "0..*" DraftResponse : "sinh dự thảo"
-User "1" --> "0..*" DraftResponse : "soạn thảo"
-
-User "1" --> "0..*" Notification : "nhận cảnh báo"
-Document "1" <-- "0..*" Notification : "liên quan"
-
-Document ..> AIService : "gọi bóc tách/tóm tắt"
-DraftResponse ..> AIService : "sinh nội dung"
-Attachment ..> AIService : "bóc tách OCR"
-
-@enduml
-```
-
----
-
-# 8. Checklist trước khi xuất biểu đồ
+## Use Case Diagram
+- [ ] Có `left to right direction`.
+- [ ] Human Actors nằm bên trái, Secondary/System Actors (AI) nằm bên phải.
+- [ ] Các Use Case được gom vào các `package` ranh giới hệ thống rõ ràng.
+- [ ] Tên Use Case đánh mã rõ ràng (`UC1`, `UC2`...) khớp với đặc tả yêu cầu (FR).
+- [ ] Không vẽ chéo dây bừa bãi giữa các Actor và Use Case.
 
 ## Class Diagram
 - [ ] Đã tắt icon tròn mặc định (`classAttributeIconSize 0`).
 - [ ] Thuộc tính và phương thức có đầy đủ phạm vi truy cập (+, -, #).
 - [ ] Phân biệt đúng giữa Composition (*--), Aggregation (o--), Association (-->).
 - [ ] Không nhồi nhét quá nhiều chi tiết làm rối biểu đồ.
+
+## ERD Diagram (Mô hình CSDL)
+- [ ] Sử dụng đúng cú pháp `entity` và ký hiệu chân quạ Crow's Foot (`||--o{`, `||--||`).
+- [ ] Đã đánh dấu đầy đủ `<<PK>>` cho Khóa chính và `<<FK>>` cho các Khóa ngoại.
+- [ ] Đã sử dụng dấu `*` cho tất cả các trường dữ liệu bắt buộc (`NOT NULL`).
+- [ ] Đã phân cách rõ ràng giữa Khóa chính và các thuộc tính khác bằng dòng kẻ `--`.
+- [ ] Tên bảng tuân thủ định dạng số nhiều `snake_case` (VD: `documents`, `users`, `task_assignments`).
+- [ ] Các đường nối quan hệ rõ ràng, không bị đè lên chữ của các cột.
 
 ## Sequence Diagram
 
@@ -923,7 +735,19 @@ Attachment ..> AIService : "bóc tách OCR"
 
 ---
 
-# 9. Prompt nội bộ để AI tự sinh PlantUML
+# 11. Prompt nội bộ để AI tự sinh PlantUML
+
+Khi được yêu cầu tạo Use Case Diagram:
+
+```text
+Hãy tạo Use Case Diagram bằng PlantUML.
+Dùng left to right direction, nền trắng, shadowing false, font Arial.
+Actors con người (Văn thư, Lãnh đạo, Chuyên viên) đặt bên trái.
+Secondary Actor (Hệ thống AI) đặt bên phải.
+Bao bọc các Use Case trong System boundary package và các package nghiệp vụ.
+Đánh mã UC1 - UC12 khớp với 12 FR của hệ thống.
+Chỉ trả về một block @startuml ... @enduml.
+```
 
 Khi được yêu cầu tạo Sequence Diagram:
 
@@ -969,9 +793,23 @@ Tô màu nền riêng (#FEF2F2) cho các lớp dịch vụ AI.
 Chỉ trả về một block @startuml ... @enduml.
 ```
 
+Khi được yêu cầu tạo ERD Diagram (Mô hình CSDL):
+
+```text
+Hãy tạo ERD Diagram bằng PlantUML với ký hiệu chân quạ (Crow's Foot Notation).
+Ưu tiên bố cục gọn gàng, nền trắng, shadowing false, font Arial, RoundCorner 8.
+Sử dụng cú pháp entity "table_name" as table_name { ... }.
+Dùng dấu * cho các trường NOT NULL, phân tách phần PK bằng --.
+Ghi rõ kiểu dữ liệu SQL (INT, VARCHAR, TEXT, BOOLEAN, TIMESTAMP).
+Đánh dấu rõ ràng <<PK>> và <<FK>>.
+Dùng các ký hiệu quan hệ chân quạ: ||--o{ (1 - nhiều), ||--|| (1 - 1).
+Tên bảng dạng danh từ số nhiều snake_case (VD: documents, users).
+Chỉ trả về một block @startuml ... @enduml.
+```
+
 ---
 
-# 10. Quy ước đặt tên đề xuất
+# 12. Quy ước đặt tên đề xuất
 
 | Loại | Quy ước |
 |---|---|
@@ -983,13 +821,17 @@ Chỉ trả về một block @startuml ... @enduml.
 | Action | Động từ + đối tượng: `Tải công văn`, `Lưu dữ liệu`, `Phân tích nội dung` |
 | Condition | Câu hỏi: `Dữ liệu hợp lệ?`, `Đã hoàn thành?` |
 | Class Name | Danh từ, PascalCase: `Document`, `Attachment`, `TaskAssignment`, `AIService` |
-| Attribute | Danh từ, snake_case hoặc camelCase: `document_number`, `deadline`, `status` |
+| Attribute (OOP) | Danh từ, snake_case hoặc camelCase: `document_number`, `deadline`, `status` |
 | Method | Động từ + danh từ: `add_attachment()`, `update_status()`, `is_overdue()` |
 | Package | Tên cụm danh từ nghiệp vụ: `Quản lý Người dùng`, `Nghiệp vụ Công văn` |
+| Table / Entity | Danh từ số nhiều, snake_case: `documents`, `users`, `task_assignments` |
+| Primary Key | Tên định danh cố định: `id` |
+| Foreign Key | Tên bảng số ít + `_id`: `document_id`, `assigner_id`, `user_id` |
+| Column (SQL) | Danh từ, snake_case: `document_number`, `is_approved`, `created_at` |
 
 ---
 
-# 11. Kết quả mong muốn
+# 13. Kết quả mong muốn
 
 Mỗi biểu đồ được tạo theo skill này phải đạt 4 tiêu chí:
 
