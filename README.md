@@ -1,6 +1,6 @@
 # Hệ thống Quản lý Công văn và Văn bản Nội bộ Tích hợp AI
 
-Đề tài môn học: **Công nghệ Kỹ thuật Phần mềm (Software Engineering & Generative AI)**.
+Đề tài môn học: **Ứng dụng trí tuệ nhân tạo**.
 
 ---
 
