@@ -54,6 +54,14 @@ npm run dev
 ```
 * **Giao diện Web**: `http://localhost:3000` (hoặc cổng hiển thị trên terminal).
 
+### Bước 3: Chạy Kiểm thử Tự động (Pytest Suite)
+Mở cửa sổ Terminal thứ ba để kiểm tra chất lượng phần mềm (KT3):
+```bash
+cd backend
+py -m pytest -v
+```
+* Bộ kiểm thử gồm **17 ca test tự động** bao phủ đầy đủ: Đăng nhập (FR1), Tiếp nhận (FR2), Phân công (FR3), Tiến độ & Duyệt dự thảo (FR4), Tra cứu (FR5), Nhắc hạn (FR6), Các ca kiểm thử AI (FR7-FR10), Chống Hallucination và Bảo mật phân quyền 3 vai trò (NFR1).
+
 ---
 
 ## 3. Tài khoản Đăng nhập Demo (3 Vai trò chuẩn)
