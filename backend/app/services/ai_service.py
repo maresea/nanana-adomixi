@@ -18,44 +18,101 @@ class AIService:
     @classmethod
     def _mock_response(cls, system_prompt: str, user_content: str, start_time: float) -> Tuple[str, int]:
         """Tự động phân tích heuristic thông minh khi ở chế độ Mock hoặc khi API gặp sự cố."""
-        latency = max(int((time.time() - start_time) * 1000), 50)
+        latency = max(int((time.time() - start_time) * 1000), 65)
 
         if "trích xuất văn bản" in system_prompt.lower():
+            # 1. Trích xuất số hiệu
             num_match = re.search(r"Số:?\s*([0-9]+[a-zA-Z0-9\/\-_]+)", user_content)
             doc_num = num_match.group(1) if num_match else "108/UBND-VX"
+
+            # 2. Trích xuất ngày ban hành
+            date_match = re.search(r"Ngày\s+([0-9]{1,2})\s+tháng\s+([0-9]{1,2})\s+năm\s+([0-9]{4})", user_content, re.IGNORECASE)
+            if date_match:
+                d, m, y = date_match.groups()
+                issued_date = f"{y}-{int(m):02d}-{int(d):02d}"
+            else:
+                issued_date = "2026-03-24"
+
+            # 3. Trích xuất cơ quan ban hành
+            org_match = re.search(r"^(ỦY BAN NHÂN DÂN[^\n]+|SỞ [^\n]+|BỘ [^\n]+|CỤC [^\n]+|CHI CỤC [^\n]+|TRƯỜNG [^\n]+)", user_content, re.MULTILINE | re.IGNORECASE)
+            sender_org = org_match.group(1).strip() if org_match else "Ủy ban nhân dân Tỉnh"
+
+            # 4. Trích xuất trích yếu (V/v)
+            title_match = re.search(r"V/v:?\s*([^\n]+)", user_content, re.IGNORECASE)
+            if title_match:
+                title = title_match.group(1).strip()
+            else:
+                lines = [l.strip() for l in user_content.splitlines() if l.strip() and not l.startswith("Số") and not l.startswith("Kính gửi")]
+                title = lines[0] if lines else "V/v tăng cường quản trị công văn số"
+
             return json.dumps({
                 "document_number": doc_num,
-                "issued_date": "2026-03-22",
-                "sender_org": "Ủy ban nhân dân Tỉnh",
-                "title": user_content[:120].strip() or "V/v tăng cường quản trị công văn số",
+                "issued_date": issued_date,
+                "sender_org": sender_org,
+                "title": title[:200],
                 "confidence_score": 0.96
             }, ensure_ascii=False), latency
 
         elif "tóm tắt văn bản" in system_prompt.lower():
-            summary = (
-                "1. Mục đích: Đẩy nhanh tiến độ số hóa hồ sơ và ứng dụng công nghệ thông tin trong cơ quan.\n"
-                "2. Nội dung chính: Tăng cường rà soát an toàn dữ liệu, triển khai lưu chuyển công văn điện tử.\n"
-                "3. Yêu cầu phối hợp: Các phòng ban khẩn trương hoàn thiện báo cáo phân loại định kỳ.\n"
-                "4. Thời hạn thực hiện: Trước ngày 30 hàng tháng gửi về Văn phòng tổng hợp."
-            )
+            # Tóm tắt động dựa trên nội dung thực tế
+            lines = [l.strip() for l in user_content.splitlines() if len(l.strip()) > 25 and not l.startswith("Số:") and not l.startswith("Kính gửi:")]
+            if len(lines) >= 3:
+                summary = (
+                    f"1. Mục đích & Căn cứ: {lines[0][:140]}.\n"
+                    f"2. Nội dung trọng tâm: {lines[1][:140]}.\n"
+                    f"3. Yêu cầu & Nhiệm vụ: {lines[2][:140]}.\n"
+                    "4. Thời hạn thực hiện: Thực hiện nghiêm túc theo mốc thời gian quy định tại văn bản."
+                )
+            else:
+                summary = (
+                    "1. Mục đích: Đẩy nhanh tiến độ số hóa hồ sơ và ứng dụng công nghệ thông tin trong cơ quan.\n"
+                    "2. Nội dung chính: Tăng cường rà soát an toàn dữ liệu, triển khai lưu chuyển công văn điện tử.\n"
+                    "3. Yêu cầu phối hợp: Các phòng ban khẩn trương hoàn thiện báo cáo phân loại định kỳ.\n"
+                    "4. Thời hạn thực hiện: Trước ngày 30 hàng tháng gửi về Văn phòng tổng hợp."
+                )
             return summary, latency
 
         elif "phân loại" in system_prompt.lower():
-            urgency = "URGENT" if any(w in user_content.lower() for w in ["khẩn", "ngay", "hỏa tốc", "gấp"]) else "NORMAL"
+            is_urgent = any(w in user_content.lower() for w in ["khẩn", "ngay", "hỏa tốc", "gấp", "thượng khẩn"])
+            urgency = "VERY_URGENT" if any(w in user_content.lower() for w in ["hỏa tốc", "thượng khẩn"]) else ("URGENT" if is_urgent else "NORMAL")
+
+            if any(w in user_content.lower() for w in ["kế hoạch", "triển khai", "đề án"]):
+                category = "Kế hoạch & Triển khai"
+            elif any(w in user_content.lower() for w in ["tài chính", "ngân sách", "kinh phí", "quyết toán"]):
+                category = "Tài chính - Kế toán"
+            elif any(w in user_content.lower() for w in ["nhân sự", "cán bộ", "tổ chức", "bổ nhiệm"]):
+                category = "Tổ chức cán bộ"
+            elif any(w in user_content.lower() for w in ["công nghệ", "số hóa", "an toàn thông tin", "cntt", "chuyển đổi số"]):
+                category = "Công nghệ thông tin"
+            else:
+                category = "Chỉ đạo điều hành"
+
             return json.dumps({
-                "category": "Chỉ đạo điều hành",
+                "category": category,
                 "urgency": urgency,
-                "reasoning": "Văn bản chứa các mốc thời gian và yêu cầu chỉ đạo phối hợp liên phòng ban."
+                "reasoning": f"Hệ thống phát hiện các căn cứ chuyên môn phù hợp với danh mục '{category}' và mức độ '{urgency}'."
             }, ensure_ascii=False), latency
 
         elif "soạn thảo" in system_prompt.lower():
+            inst_clean = user_content.split("Ý KIẾN CHỈ ĐẠO CỦA LÃNH ĐẠO:")[-1].strip() if "Ý KIẾN CHỈ ĐẠO CỦA LÃNH ĐẠO:" in user_content else "Đồng ý phối hợp thực hiện theo quy định."
+            orig_doc = user_content.split("Ý KIẾN CHỈ ĐẠO CỦA LÃNH ĐẠO:")[0].replace("VĂN BẢN GỐC:", "").strip()
+            title_brief = orig_doc[:80] if orig_doc else "nhiệm vụ được giao"
+
             draft = (
+                "CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM\n"
+                "Độc lập - Tự do - Hạnh phúc\n"
+                "------------------------------------\n\n"
                 "Kính gửi: Cơ quan chủ quản / Đơn vị liên quan.\n\n"
-                "Căn cứ nội dung chỉ đạo và yêu cầu nhiệm vụ được giao, Cơ quan xin báo cáo và phản hồi như sau:\n"
-                "1. Cơ quan đã tiếp nhận đầy đủ thông tin và phân công cán bộ chuyên môn chủ trì thực hiện.\n"
-                "2. Tiến độ triển khai bảo đảm đúng kế hoạch và hướng dẫn hiện hành.\n"
-                "3. Dự kiến hoàn tất và gửi hồ sơ chính thức theo đúng thời hạn quy định.\n\n"
-                "Kính trình Lãnh đạo xem xét, phê duyệt ban hành."
+                f"Căn cứ nội dung văn bản liên quan đến: {title_brief};\n"
+                f"Thực hiện ý kiến chỉ đạo của Lãnh đạo cơ quan: \"{inst_clean}\",\n\n"
+                "Cơ quan xin báo cáo và phúc đáp như sau:\n"
+                f"1. Về chủ trương: Cơ quan thống nhất nội dung và phương án phối hợp theo đúng tinh thần chỉ đạo (\"{inst_clean}\").\n"
+                "2. Về nhân sự và tiến độ: Đã giao bộ phận chuyên môn rà soát, bố trí cán bộ đầu mối trực tiếp theo dõi và triển khai.\n"
+                "3. Cam kết: Đảm bảo báo cáo kết quả và cung cấp tài liệu đầy đủ theo đúng thời hạn quy định.\n\n"
+                "Kính trình Lãnh đạo xem xét, phê duyệt ban hành./.\n\n"
+                "Nơi nhận:\n"
+                "- Như trên;\n"
+                "- Lưu: VT, Bộ phận chuyên môn."
             )
             return draft, latency
 

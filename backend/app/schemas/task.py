@@ -38,6 +38,16 @@ class TaskAssignCreate(BaseModel):
 class TaskStatusUpdate(BaseModel):
     status: str # ASSIGNED, PROCESSING, RESOLVED
 
+class DocumentBrief(BaseModel):
+    id: int
+    document_number: str
+    title: str
+    document_type: str
+    urgency: str
+
+    class Config:
+        from_attributes = True
+
 class TaskResponse(BaseModel):
     id: int
     document_id: int
@@ -49,6 +59,7 @@ class TaskResponse(BaseModel):
     created_at: datetime
     assigner: Optional[UserBrief] = None
     assignee: Optional[UserBrief] = None
+    document: Optional[DocumentBrief] = None
     drafts: List[DraftResponseModel] = []
 
     class Config:

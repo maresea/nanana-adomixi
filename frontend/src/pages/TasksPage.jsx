@@ -103,8 +103,12 @@ export const TasksPage = () => {
   const handleGenerateAIDraft = async (task) => {
     setGeneratingAiDraft(true);
     try {
+      const docContext = task.document 
+        ? `Số hiệu: ${task.document.document_number}\nTrích yếu: ${task.document.title}`
+        : (task.instruction || "Công văn yêu cầu phối hợp giải quyết theo chức năng nhiệm vụ.");
+
       const res = await apiClient.post('/ai/generate-draft', {
-        document_text: task.instruction || "Công văn yêu cầu phối hợp giải quyết theo chức năng nhiệm vụ.",
+        document_text: docContext,
         instruction: task.instruction || "Đồng ý phối hợp và báo cáo tiến độ theo quy định."
       });
       setDraftContent(res.data.draft_content);
@@ -280,8 +284,14 @@ export const TasksPage = () => {
                         </span>
                       </div>
 
+                      {t.document && (
+                        <div className="text-xs font-semibold text-primary-800 bg-primary-50/80 px-2.5 py-1 rounded-lg border border-primary-200/60 inline-flex items-center space-x-1.5 mt-1">
+                          <span>📄 Hồ sơ: <strong>{t.document.document_number}</strong> - {t.document.title}</span>
+                        </div>
+                      )}
+
                       <div className="text-sm font-bold text-slate-800 pt-1">
-                        {t.instruction || "Chủ trì rà soát và thực hiện công văn theo quy định."}
+                        Chỉ đạo: {t.instruction || "Chủ trì rà soát và thực hiện công văn theo quy định."}
                       </div>
 
                       <div className="text-xs text-slate-500 flex items-center space-x-3 pt-1">
