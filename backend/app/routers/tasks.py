@@ -1,220 +1,140 @@
-from datetime import datetime
-from typing import List
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
+from typing import List, Optional
+from datetime import datetime, timezone
 from app.core.database import get_db
-from app.core.permissions import get_current_user, require_role
-from app.models.user import User
+from app.models.task import TaskAssignment
 from app.models.document import Document
-from app.models.task import TaskAssignment, DraftResponse
-from app.models.ai_log import Notification
-from app.schemas.task import (
-    TaskAssignCreate,
-    TaskStatusUpdate,
-    TaskAssignmentResponse,
-    DraftCreate,
-    DraftResponseSchema
-)
+from app.models.user import User
+from app.models.system import Notification
+from app.schemas.task import TaskAssignCreate, TaskStatusUpdate, TaskResponse
+from app.dependencies import get_current_user, require_roles
 
-router = APIRouter(prefix="/tasks", tags=["Phân công & Xử lý công việc (Task Management)"])
+router = APIRouter(prefix="/tasks", tags=["3. Phân công & Nhắc hạn xử lý (FR3, FR4, FR6)"])
 
-@router.post("/assign", response_model=TaskAssignmentResponse, status_code=status.HTTP_201_CREATED)
+@router.post("/assign", response_model=TaskResponse, summary="Lãnh đạo phân công xử lý văn bản & Thiết lập hạn (FR3)")
 def assign_task(
-    assign_data: TaskAssignCreate,
-    current_user: User = Depends(require_role(["LEADER", "ADMIN"])),
-    db: Session = Depends(get_db)
+    task_in: TaskAssignCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(["LEADER"]))
 ):
-    """
-    Lãnh đạo (LEADER) giao việc cho Chuyên viên / Phòng ban:
-    - Nhập ý kiến chỉ đạo vắn tắt.
-    - Thiết lập thời hạn chót giải quyết (Deadline).
-    - Cập nhật trạng thái công văn sang 'ASSIGNED'.
-    """
-    doc = db.query(Document).filter(Document.id == assign_data.document_id).first()
+    doc = db.query(Document).filter(Document.id == task_in.document_id).first()
     if not doc:
-        raise HTTPException(status_code=404, detail="Không tìm thấy công văn để giao việc.")
+        raise HTTPException(status_code=404, detail="Không tìm thấy văn bản để phân công")
 
-    # Tạo bản ghi phân công
-    new_assignment = TaskAssignment(
-        document_id=assign_data.document_id,
-        assigned_by_user_id=current_user.id,
-        assigned_to_user_id=assign_data.assigned_to_user_id,
-        assigned_to_dept_id=assign_data.assigned_to_dept_id or doc.department_id,
-        directive_notes=assign_data.directive_notes,
-        deadline=assign_data.deadline,
-        status="ASSIGNED",
-        assigned_at=datetime.utcnow()
+    assignee = db.query(User).filter(User.id == task_in.assignee_id).first()
+    if not assignee or assignee.role != "SPECIALIST":
+        raise HTTPException(status_code=400, detail="Người được phân công phải là Chuyên viên xử lý")
+
+    task = TaskAssignment(
+        document_id=task_in.document_id,
+        assigner_id=current_user.id,
+        assignee_id=task_in.assignee_id,
+        instruction=task_in.instruction,
+        deadline=task_in.deadline,
+        status="ASSIGNED"
     )
+    db.add(task)
 
-    # Cập nhật trạng thái của công văn
+    # Cập nhật trạng thái công văn sang Đã phân công
     doc.status = "ASSIGNED"
-    if assign_data.assigned_to_dept_id:
-        doc.department_id = assign_data.assigned_to_dept_id
 
-    # Tạo thông báo đến chuyên viên
-    if assign_data.assigned_to_user_id:
-        notif = Notification(
-            user_id=assign_data.assigned_to_user_id,
-            document_id=doc.id,
-            type="NEW_ASSIGNMENT",
-            title=f"Nhiệm vụ mới: {doc.document_code}",
-            message=f"Lãnh đạo {current_user.full_name} đã giao bạn xử lý công văn: {doc.title}. Hạn chót: {assign_data.deadline.strftime('%d/%m/%Y')}."
-        )
-        db.add(notif)
-
-    db.add(new_assignment)
-    db.commit()
-    db.refresh(new_assignment)
-
-    return new_assignment
-
-
-@router.get("/my-tasks", response_model=List[TaskAssignmentResponse])
-def get_my_tasks(
-    current_user: User = Depends(require_role(["SPECIALIST", "LEADER", "ADMIN"])),
-    db: Session = Depends(get_db)
-):
-    """Lấy danh sách các công việc được giao cho Chuyên viên đang đăng nhập."""
-    tasks = db.query(TaskAssignment)\
-              .filter(TaskAssignment.assigned_to_user_id == current_user.id)\
-              .order_by(TaskAssignment.deadline.asc())\
-              .all()
-    return tasks
-
-
-@router.patch("/{task_id}/status", response_model=TaskAssignmentResponse)
-def update_task_status(
-    task_id: int,
-    status_data: TaskStatusUpdate,
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
-    """
-    Chuyên viên hoặc Lãnh đạo cập nhật trạng thái xử lý nhiệm vụ:
-    - ASSIGNED -> IN_PROGRESS -> DRAFT_SUBMITTED -> COMPLETED
-    """
-    task = db.query(TaskAssignment).filter(TaskAssignment.id == task_id).first()
-    if not task:
-        raise HTTPException(status_code=404, detail="Không tìm thấy nhiệm vụ phân công.")
-
-    # Kiểm tra quyền: chỉ người được giao hoặc người giao việc mới được cập nhật
-    user_role = current_user.role.code if current_user.role else ""
-    if task.assigned_to_user_id != current_user.id and user_role not in ["LEADER", "ADMIN"]:
-        raise HTTPException(status_code=403, detail="Bạn không có quyền cập nhật trạng thái nhiệm vụ này.")
-
-    task.status = status_data.status
-    if status_data.status == "COMPLETED":
-        task.completed_at = datetime.utcnow()
-        if task.document:
-            task.document.status = "COMPLETED"
-    elif status_data.status == "IN_PROGRESS" and task.document:
-        task.document.status = "IN_PROGRESS"
+    # Tạo thông báo tự động cho chuyên viên được phân công (FR6)
+    notif = Notification(
+        user_id=assignee.id,
+        title=f"Phân công xử lý văn bản số {doc.document_number}",
+        content=f"Lãnh đạo {current_user.full_name} đã giao nhiệm vụ xử lý công văn: '{doc.title}'. Hạn chót: {task_in.deadline.strftime('%d/%m/%Y %H:%M')}"
+    )
+    db.add(notif)
 
     db.commit()
     db.refresh(task)
     return task
 
-
-@router.post("/{task_id}/draft", response_model=DraftResponseSchema, status_code=status.HTTP_201_CREATED)
-def submit_draft(
-    task_id: int,
-    draft_data: DraftCreate,
-    current_user: User = Depends(require_role(["SPECIALIST", "ADMIN"])),
-    db: Session = Depends(get_db)
+@router.get("", response_model=List[TaskResponse], summary="Xem danh sách nhiệm vụ phân công (FR3, FR4)")
+def list_tasks(
+    document_id: Optional[int] = None,
+    status_filter: Optional[str] = Query(None, alias="status"),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
-    """
-    Chuyên viên nộp dự thảo văn bản phản hồi (soạn tay hoặc tinh chỉnh từ AI) lên Lãnh đạo phê duyệt.
-    """
+    query = db.query(TaskAssignment)
+
+    # Nếu là chuyên viên, chỉ thấy nhiệm vụ được giao cho mình
+    if current_user.role == "SPECIALIST":
+        query = query.filter(TaskAssignment.assignee_id == current_user.id)
+    elif current_user.role == "LEADER":
+        pass # Lãnh đạo xem toàn bộ nhiệm vụ
+
+    if document_id:
+        query = query.filter(TaskAssignment.document_id == document_id)
+    if status_filter:
+        query = query.filter(TaskAssignment.status == status_filter.upper())
+
+    return query.order_by(TaskAssignment.created_at.desc()).all()
+
+@router.patch("/{task_id}/status", response_model=TaskResponse, summary="Chuyên viên cập nhật tiến độ xử lý (FR4)")
+def update_task_status(
+    task_id: int,
+    status_in: TaskStatusUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(["SPECIALIST", "LEADER"]))
+):
     task = db.query(TaskAssignment).filter(TaskAssignment.id == task_id).first()
     if not task:
-        raise HTTPException(status_code=404, detail="Không tìm thấy nhiệm vụ phân công tương ứng.")
+        raise HTTPException(status_code=404, detail="Không tìm thấy nhiệm vụ")
 
-    if task.assigned_to_user_id != current_user.id and current_user.role.code != "ADMIN":
-        raise HTTPException(status_code=403, detail="Chỉ chuyên viên được phân công mới có thể nộp dự thảo.")
+    if current_user.role == "SPECIALIST" and task.assignee_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Bạn không được phép cập nhật nhiệm vụ của chuyên viên khác")
 
-    # Tạo bản ghi dự thảo
-    new_draft = DraftResponse(
-        document_id=task.document_id,
-        task_assignment_id=task.id,
-        author_user_id=current_user.id,
-        title=draft_data.title,
-        content=draft_data.content,
-        is_ai_generated=draft_data.is_ai_generated,
-        status="SUBMITTED"
-    )
+    task.status = status_in.status.upper()
 
-    task.status = "DRAFT_SUBMITTED"
-    if task.document:
-        task.document.status = "SUBMITTED"
+    # Cập nhật tương ứng cho trạng thái chung của công văn
+    doc = db.query(Document).filter(Document.id == task.document_id).first()
+    if doc:
+        if task.status == "PROCESSING":
+            doc.status = "IN_PROGRESS"
+        elif task.status == "RESOLVED":
+            doc.status = "COMPLETED"
 
-    # Tạo thông báo gửi Lãnh đạo
-    notif = Notification(
-        user_id=task.assigned_by_user_id,
-        document_id=task.document_id,
-        type="DRAFT_SUBMITTED",
-        title=f"Dự thảo mới chờ duyệt: {task.document.document_code}",
-        message=f"Chuyên viên {current_user.full_name} đã trình dự thảo: '{draft_data.title}'."
-    )
-    db.add(notif)
-
-    db.add(new_draft)
     db.commit()
-    db.refresh(new_draft)
-    return new_draft
+    db.refresh(task)
+    return task
 
-
-@router.post("/drafts/{draft_id}/approve", response_model=DraftResponseSchema)
-def approve_draft(
-    draft_id: int,
-    is_approved: bool = True,
-    feedback: str = "",
-    current_user: User = Depends(require_role(["LEADER", "ADMIN"])),
-    db: Session = Depends(get_db)
+@router.get("/alerts/deadline-warnings", summary="Nhắc nhở văn bản sắp đến hạn và quá hạn (FR6)")
+def get_deadline_alerts(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
-    """
-    Lãnh đạo phê duyệt hoặc từ chối trả lại dự thảo:
-    - Nếu duyệt: Chuyển trạng thái sang 'APPROVED', chuẩn bị cho Văn thư cấp số ban hành.
-    - Nếu từ chối: Chuyển 'REJECTED' kèm ý kiến phản hồi cho Chuyên viên hoàn thiện lại.
-    """
-    draft = db.query(DraftResponse).filter(DraftResponse.id == draft_id).first()
-    if not draft:
-        raise HTTPException(status_code=404, detail="Không tìm thấy văn bản dự thảo.")
+    now = datetime.now()
+    query = db.query(TaskAssignment).filter(TaskAssignment.status != "RESOLVED")
 
-    if is_approved:
-        draft.status = "APPROVED"
-        draft.leader_feedback = feedback or "Đồng ý phê duyệt phát hành."
-        if draft.task_assignment:
-            draft.task_assignment.status = "APPROVED"
-        if draft.document:
-            draft.document.status = "APPROVED"
-            
-        # Báo cho chuyên viên
-        notif = Notification(
-            user_id=draft.author_user_id,
-            document_id=draft.document_id,
-            type="DRAFT_APPROVED",
-            title="Dự thảo đã được duyệt",
-            message=f"Lãnh đạo {current_user.full_name} đã phê duyệt dự thảo: {draft.title}."
-        )
-        db.add(notif)
-    else:
-        draft.status = "REJECTED"
-        draft.leader_feedback = feedback or "Yêu cầu chỉnh sửa lại nội dung."
-        if draft.task_assignment:
-            draft.task_assignment.status = "IN_PROGRESS"
-        if draft.document:
-            draft.document.status = "IN_PROGRESS"
+    if current_user.role == "SPECIALIST":
+        query = query.filter(TaskAssignment.assignee_id == current_user.id)
 
-        notif = Notification(
-            user_id=draft.author_user_id,
-            document_id=draft.document_id,
-            type="DRAFT_SUBMITTED",
-            title="Dự thảo cần chỉnh sửa bổ sung",
-            message=f"Lãnh đạo {current_user.full_name} yêu cầu chỉnh sửa dự thảo: {feedback}."
-        )
-        db.add(notif)
+    tasks = query.all()
+    overdue = []
+    due_soon = []
 
-    db.commit()
-    db.refresh(draft)
-    return draft
+    for t in tasks:
+        diff_hours = (t.deadline - now).total_seconds() / 3600
+        item = {
+            "task_id": t.id,
+            "document_id": t.document_id,
+            "document_number": t.document.document_number if t.document else "",
+            "document_title": t.document.title if t.document else "",
+            "deadline": t.deadline,
+            "assignee_name": t.assignee.full_name if t.assignee else "",
+            "hours_remaining": round(diff_hours, 1)
+        }
+        if diff_hours < 0:
+            overdue.append(item)
+        elif diff_hours <= 48: # Sắp đến hạn trong 48h
+            due_soon.append(item)
 
+    return {
+        "overdue_count": len(overdue),
+        "due_soon_count": len(due_soon),
+        "overdue_tasks": overdue,
+        "due_soon_tasks": due_soon
+    }

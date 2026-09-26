@@ -1,16 +1,16 @@
-from app.models.user import Department, Role, User
-from app.models.document import Document
+from app.models.department import Department
+from app.models.user import User
+from app.models.document import Document, Attachment
 from app.models.task import TaskAssignment, DraftResponse
-from app.models.ai_log import AITaskLog, Notification
+from app.models.system import Notification, AITaskLog
 
 __all__ = [
     "Department",
-    "Role",
     "User",
     "Document",
+    "Attachment",
     "TaskAssignment",
     "DraftResponse",
-    "AITaskLog",
-    "Notification"
+    "Notification",
+    "AITaskLog"
 ]
-

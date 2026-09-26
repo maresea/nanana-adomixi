@@ -13,10 +13,17 @@ export default {
           500: '#3b82f6',
           600: '#2563eb',
           700: '#1d4ed8',
+          800: '#1e40af',
+          900: '#1e3a8a',
+        },
+        ai: {
+          light: '#fef2f2',
+          border: '#fca5a5',
+          text: '#991b1b',
+          accent: '#ef4444'
         }
       }
     },
   },
   plugins: [],
 }
-

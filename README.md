@@ -1,129 +1,84 @@
-# HỆ THỐNG QUẢN LÝ CÔNG VĂN VÀ VĂN BẢN NỘI BỘ TÍCH HỢP AI
+# Hệ thống Quản lý Công văn và Văn bản Nội bộ Tích hợp AI
 
-Hệ thống số hóa và tự động hóa quy trình tiếp nhận, luân chuyển, xử lý và ban hành công văn hành chính dành cho Cơ quan Nhà nước, tích hợp Trí tuệ Nhân tạo (AI & OCR) với cơ chế bảo mật đa tầng.
-
----
-
-## 1. CÔNG NGHỆ CHỦ ĐẠO (TECH STACK)
-
-- **Backend**:
-  - Framework: [FastAPI](https://fastapi.tiangolo.com/) (Python 3.12/3.14).
-  - CSDL & ORM: [PostgreSQL](https://www.postgresql.org/) / [SQLite](https://www.sqlite.org/) qua [SQLAlchemy](https://www.sqlalchemy.org/).
-  - Xác thực & Phân quyền: JWT Token HS256, RBAC kết hợp ABAC cô lập dữ liệu.
-  - Xử lý Bất đồng bộ: FastAPI BackgroundTasks, hỗ trợ tích hợp Redis/Celery.
-- **Frontend**:
-  - Thư viện cốt lõi: [React 18](https://react.dev/), [TypeScript](https://www.typescriptlang.org/), [Vite](https://vitejs.dev/).
-  - Giao diện: [Tailwind CSS](https://tailwindcss.com/), [Lucide React](https://lucide.dev/).
-  - Quản lý trạng thái: [Zustand](https://zustand-demo.pmnd.rs/) (Auth & Role state), [TanStack React Query](https://tanstack.com/query/latest).
-  - Định tuyến: [React Router v6](https://reactrouter.com/).
-  - Realtime: WebSocket client lắng nghe sự kiện hoàn tất AI ngầm.
-- **Trí tuệ Nhân tạo (AI Engine)**:
-  - Kiến trúc Adapter Pattern: Hoán đổi linh hoạt giữa Local AI và Cloud AI.
-  - **Local AI** (Bắt buộc với văn bản MẬT): Ollama / vLLM trên On-premise GPU (NVIDIA RTX 3090/4090).
-  - **Cloud AI** (Thử nghiệm PoC): Google Gemini API, OpenAI API (tuyệt đối không hard-code khóa).
-  - **Heuristic Fallback Engine**: Tự động dự phòng khi ngắt kết nối mô hình ngoài.
+Đề tài môn học: **Công nghệ Kỹ thuật Phần mềm (Software Engineering & Generative AI)**.
 
 ---
 
-## 2. CẤU TRÚC THƯ MỤC DỰ ÁN
+## 1. Cấu trúc Dự án
 
 ```
-Skill_Prj/
-├── backend/                  # Mã nguồn dịch vụ Backend (FastAPI)
+nanana-adomixi/
+├── .agents/                 # Rules và Skills chuẩn hóa quy trình phân tích & phát triển
+├── database/                # Thiết kế Cơ sở Dữ liệu & Seed Data (database-design-skill)
+│   ├── schema.sql           # DDL 8 bảng quan hệ chuẩn 3NF
+│   └── seed_data.sql        # Dữ liệu mẫu khởi tạo cho 3 vai trò và luồng công văn
+├── backend/                 # Backend RESTful API (backend-development-skill)
 │   ├── app/
-│   │   ├── core/             # Database session, JWT security, RBAC/ABAC permissions
-│   │   ├── models/           # SQLAlchemy Data Models
-│   │   ├── schemas/          # Pydantic Schemas
-│   │   ├── services/         # AI Service (Adapter Pattern, Prompts hành chính)
-│   │   ├── routers/          # API Endpoints (auth, documents, tasks, ai)
-│   │   ├── config.py         # Cấu hình biến môi trường
-│   │   └── main.py           # Điểm vào ứng dụng FastAPI & Middleware
-│   ├── tests/                # Bộ kiểm thử tự động toàn diện (pytest)
-│   ├── .env.example          # Mẫu biến môi trường
-│   └── requirements.txt      # Thư viện phụ thuộc Python
-├── frontend/                 # Mã nguồn giao diện người dùng (React + Vite)
+│   │   ├── main.py          # Khởi chạy FastAPI, CORS, tự động tạo bảng & nạp seed data
+│   │   ├── core/            # Cấu hình hệ thống, bảo mật JWT, database session
+│   │   ├── models/          # 8 ORM Models SQLAlchemy khớp 1:1 CSDL
+│   │   ├── schemas/         # Pydantic Schemas (Request/Response DTOs)
+│   │   ├── routers/         # API Endpoints (Bao phủ trọn vẹn 12 FR và 3 vai trò)
+│   │   └── services/        # Logic nghiệp vụ, Trích xuất tệp PDF/DOCX & Trợ lý AI
+│   └── requirements.txt
+├── frontend/                # Ứng dụng Web Single Page App (frontend-development-skill)
 │   ├── src/
-│   │   ├── components/       # Layout, Navbar, ProtectedRoute, UI components
-│   │   ├── hooks/            # useAIWebSocket.ts (kết nối thời gian thực)
-│   │   ├── lib/              # Cấu hình Axios Interceptors
-│   │   ├── pages/            # Login, Dashboards (Clerk, Leader, Specialist), DocumentDetail
-│   │   ├── routes/           # Cấu hình React Router v6
-│   │   └── store/            # Zustand authStore
-│   ├── package.json          # Thư viện phụ thuộc Node.js
-│   └── vite.config.ts        # Cấu hình Vite & Proxy
-├── database/
-│   └── schema.sql            # Bản thiết kế lược đồ CSDL PostgreSQL chuẩn hóa
-├── docs/                     # Tài liệu kỹ thuật & Báo cáo chất lượng
-│   ├── requirements.md       # Đặc tả yêu cầu phần mềm (SRS)
-│   ├── user-stories.md       # Danh sách User Stories & Tiêu chí chấp nhận
-│   ├── architecture.md       # Tài liệu thiết kế kiến trúc hệ thống
-│   ├── architecture-decisions.md # 6 quyết định kiến trúc quan trọng (ADRs)
-│   ├── database-design.md    # Thiết kế CSDL chi tiết (3NF)
-│   ├── test-report.md        # Báo cáo kiểm thử chất lượng (Testing Skill)
-│   ├── code-review.md        # Báo cáo đánh giá mã nguồn (Code Review Skill)
-│   ├── security-review.md    # Báo cáo an toàn thông tin & bảo mật (Security Review Skill)
-│   └── user-guide.md         # Hướng dẫn sử dụng hệ thống theo vai trò
-└── README.md                 # Tài liệu tổng quan dự án
+│   │   ├── pages/           # Màn hình chính (Login, Dashboard, Documents, Create, Tasks)
+│   │   ├── components/      # UI components tái sử dụng và thẻ hiển thị AI (Human-in-the-loop)
+│   │   ├── context/         # AuthContext phân quyền động 3 vai trò
+│   │   └── services/        # Axios API Client kết nối Backend
+│   └── package.json
+└── docs/                    # Tài liệu đặc tả yêu cầu, thiết kế OOD và kế hoạch dự án
 ```
 
 ---
 
-## 3. HƯỚNG DẪN CÀI ĐẶT VÀ CHẠY DỰ ÁN
+## 2. Hướng dẫn Chạy Hệ thống
 
-### 3.1. Khởi chạy Backend API
-1. Mở cửa sổ Terminal và kích hoạt môi trường ảo:
-   ```bash
-   # Windows PowerShell
-   .\venv\Scripts\Activate.ps1
-   ```
-2. Cài đặt các thư viện phụ thuộc:
-   ```bash
-   pip install -r backend/requirements.txt
-   ```
-3. Khởi tạo file biến môi trường từ mẫu:
-   ```bash
-   cp backend/.env.example backend/.env
-   ```
-4. Chạy máy chủ backend:
-   ```bash
-   cd backend
-   uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
-   ```
-- **Tài liệu API Swagger**: [http://localhost:8000/docs](http://localhost:8000/docs)
-- **Tài liệu API ReDoc**: [http://localhost:8000/redoc](http://localhost:8000/redoc)
+### Bước 1: Khởi động Backend (FastAPI)
+Mở cửa sổ Terminal thứ nhất:
+```bash
+cd backend
+py -m pip install -r requirements.txt
+py -m uvicorn app.main:app --reload --port 8000
+```
+* **Swagger UI API Docs**: `http://localhost:8000/docs` (Truy cập để kiểm thử trực tiếp mọi API).
+* CSDL SQLite (`data.db`) sẽ **tự động được tạo và nạp dữ liệu mẫu** ngay khi backend khởi động lần đầu.
 
-### 3.2. Khởi chạy Frontend Web Application
-1. Mở một cửa sổ Terminal khác:
-   ```bash
-   cd frontend
-   npm install
-   npm run dev
-   ```
-2. Truy cập ứng dụng tại: [http://localhost:5173/](http://localhost:5173/)
+### Bước 2: Khởi động Frontend (React + Vite)
+Mở cửa sổ Terminal thứ hai:
+```bash
+cd frontend
+npm install
+npm run dev
+```
+* **Giao diện Web**: `http://localhost:3000` (hoặc cổng hiển thị trên terminal).
 
 ---
 
-## 4. TÀI KHOẢN MẪU KHỞI TẠO SẴN (SEED USERS)
+## 3. Tài khoản Đăng nhập Demo (3 Vai trò chuẩn)
 
-Hệ thống tự động khởi tạo các tài khoản người dùng mẫu phục vụ kiểm thử:
+Mật khẩu mặc định cho tất cả tài khoản: **`123456`**
 
-| Tài khoản | Mật khẩu | Vai trò (Role) | Phòng ban | Chức trách chính |
-|:---|:---|:---:|:---|:---|
-| `vanthu_mai` | `Password@123` | **CLERK** | Văn phòng cơ quan | Tiếp nhận, scan/upload, đối soát thông tin, vào sổ |
-| `lanhdao_hai` | `Password@123` | **LEADER** | Ban Giám đốc | Đọc tóm tắt AI (3-5 ý), chỉ đạo, giao việc, duyệt dự thảo |
-| `chuyenvien_nam` | `Password@123` | **SPECIALIST** | Phòng Tài chính - Kế hoạch | Nhận việc, sinh dự thảo AI, nộp bản thảo phản hồi |
-| `chuyenvien_an` | `Password@123` | **SPECIALIST** | Phòng Quản lý Đô thị | Thụ lý văn bản mảng đô thị (kiểm thử bảo mật ABAC) |
-| `admin` | `Password@123` | **ADMIN** | Quản trị hệ thống | Toàn quyền quản trị tài khoản và danh mục |
+| Tên tài khoản | Vai trò | Người dùng | Thẩm quyền chính |
+|---|---|---|---|
+| **`vanthu`** | Văn thư (`CLERK`) | Nguyễn Thị Mai | Tiếp nhận công văn, upload tệp số hóa, kiểm tra AI bóc tách thông tin (FR2, FR7, FR9, FR12). |
+| **`lanhdao`** | Lãnh đạo (`LEADER`) | Trần Văn Hùng | Xem Dashboard thống kê (FR11), xem AI tóm tắt 3–5 ý (FR8), phân công & đặt hạn (FR3), duyệt dự thảo (FR4). |
+| **`chuyenvien`** | Chuyên viên (`SPECIALIST`) | Lê Hoàng Nam | Nhận nhiệm vụ, theo dõi hạn chót (FR6), dùng AI sinh dự thảo phản hồi (FR10), cập nhật tiến độ (FR4). |
 
 ---
 
-## 5. TÀI LIỆU VÀ CÁC BÁO CÁO NGHIỆM THU
+## 4. Danh mục 12 Yêu cầu Chức năng (FR1 – FR12)
 
-- [Báo cáo Kiểm thử Hệ thống (Test Report)](docs/test-report.md)
-- [Báo cáo Đánh giá Mã nguồn (Code Review)](docs/code-review.md)
-- [Báo cáo An toàn Thông tin & Bảo mật (Security Review)](docs/security-review.md)
-- [Hướng dẫn Sử dụng Theo Vai trò (User Guide)](docs/user-guide.md)
-- [Đặc tả Yêu cầu Phần mềm (SRS)](docs/requirements.md)
-- [Thiết kế Kiến trúc Hệ thống](docs/architecture.md)
-- [Thiết kế Cơ sở Dữ liệu](docs/database-design.md)
-
+* **FR1**: Đăng nhập và phân quyền theo đúng 3 vai trò.
+* **FR2**: Quản lý công văn đến, công văn đi và văn bản nội bộ.
+* **FR3**: Phân công xử lý và thiết lập hạn chót (Deadline).
+* **FR4**: Cập nhật trạng thái xử lý và trình duyệt văn bản phản hồi.
+* **FR5**: Tra cứu văn bản theo số ký hiệu, ngày, đơn vị và trạng thái.
+* **FR6**: Cảnh báo và nhắc hạn xử lý tự động (quá hạn, sắp đến hạn).
+* **FR7**: AI trích xuất thông tin tự động (số hiệu, ngày, trích yếu).
+* **FR8**: AI tóm tắt văn bản thành 3–5 ý chính cô đọng.
+* **FR9**: AI gợi ý phân loại và mức độ ưu tiên.
+* **FR10**: AI sinh dự thảo phản hồi theo mẫu thể thức hành chính.
+* **FR11**: Dashboard báo cáo thống kê tình hình công văn cho Lãnh đạo.
+* **FR12**: Nhận dạng ký tự (OCR) và bóc tách nội dung tệp scan/PDF.

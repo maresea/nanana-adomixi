@@ -1,41 +1,42 @@
-from typing import Optional
 from pydantic import BaseModel, EmailStr
+from typing import Optional
+from datetime import datetime
 
 class LoginRequest(BaseModel):
     username: str
     password: str
 
-class Token(BaseModel):
+class TokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
-    role: str
-    user_id: int
-    full_name: str
-    department_id: int
+    user: "UserResponse"
 
-class TokenPayload(BaseModel):
-    sub: Optional[str] = None
-    role: Optional[str] = None
-    department_id: Optional[int] = None
-    user_id: Optional[int] = None
-
-class UserBase(BaseModel):
-    username: str
-    email: EmailStr
-    full_name: str
-    phone_number: Optional[str] = None
-    department_id: int
-    role_id: int
-    is_active: bool = True
-
-class UserCreate(UserBase):
-    password: str
-
-class UserResponse(UserBase):
+class DepartmentBrief(BaseModel):
     id: int
-    role_code: Optional[str] = None
-    department_name: Optional[str] = None
+    code: str
+    name: str
 
     class Config:
         from_attributes = True
 
+class UserResponse(BaseModel):
+    id: int
+    username: str
+    full_name: str
+    email: EmailStr
+    role: str
+    is_active: bool
+    department: Optional[DepartmentBrief] = None
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+class UserBrief(BaseModel):
+    id: int
+    username: str
+    full_name: str
+    role: str
+
+    class Config:
+        from_attributes = True

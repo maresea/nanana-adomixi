@@ -1,57 +1,60 @@
-from datetime import date, datetime
-from typing import Optional, List, Dict, Any
 from pydantic import BaseModel
+from typing import Optional, List
+from datetime import date, datetime
 
-class DocumentBase(BaseModel):
-    document_code: str
-    arrival_number: Optional[str] = None
-    document_type: str = "INCOMING"
-    issuance_date: date
-    arrival_date: Optional[date] = None
-    issuing_authority: str
-    title: str
-    category: Optional[str] = None
-    urgency_level: str = "NORMAL"
-    confidentiality_level: str = "NORMAL"
-    department_id: Optional[int] = None
-
-class DocumentCreate(DocumentBase):
-    pass
-
-class DocumentUpdate(BaseModel):
-    document_code: Optional[str] = None
-    arrival_number: Optional[str] = None
-    issuance_date: Optional[date] = None
-    issuing_authority: Optional[str] = None
-    title: Optional[str] = None
-    category: Optional[str] = None
-    urgency_level: Optional[str] = None
-    confidentiality_level: Optional[str] = None
-    status: Optional[str] = None
-    department_id: Optional[int] = None
-    ocr_content: Optional[str] = None
-    ai_summary: Optional[str] = None
-
-class DocumentResponse(DocumentBase):
+class AttachmentResponse(BaseModel):
     id: int
-    status: str
-    file_path: str
+    document_id: int
     file_name: str
+    file_path: str
     file_size: int
-    file_mime_type: str
-    ocr_content: Optional[str] = None
-    ai_summary: Optional[str] = None
-    ai_metadata: Optional[Dict[str, Any]] = None
-    created_by_user_id: int
-    created_at: datetime
-    updated_at: datetime
+    file_type: str
+    extracted_text: Optional[str] = None
+    uploaded_at: datetime
 
     class Config:
         from_attributes = True
 
-class DocumentListResponse(BaseModel):
-    total: int
-    page: int
-    size: int
-    items: List[DocumentResponse]
+class DocumentCreate(BaseModel):
+    document_number: str
+    title: str
+    document_scope: str = "EXTERNAL"   # EXTERNAL, INTERNAL
+    document_type: str = "INCOMING"     # INCOMING, OUTGOING
+    category: Optional[str] = None
+    issued_date: date
+    sender_org: str
+    recipient_org: str
+    urgency: str = "NORMAL"            # NORMAL, URGENT, VERY_URGENT
+    ai_summary: Optional[str] = None
 
+class DocumentUpdate(BaseModel):
+    document_number: Optional[str] = None
+    title: Optional[str] = None
+    document_scope: Optional[str] = None
+    document_type: Optional[str] = None
+    category: Optional[str] = None
+    issued_date: Optional[date] = None
+    sender_org: Optional[str] = None
+    recipient_org: Optional[str] = None
+    urgency: Optional[str] = None
+    status: Optional[str] = None
+    ai_summary: Optional[str] = None
+
+class DocumentResponse(BaseModel):
+    id: int
+    document_number: str
+    title: str
+    document_scope: str
+    document_type: str
+    category: Optional[str] = None
+    issued_date: date
+    sender_org: str
+    recipient_org: str
+    urgency: str
+    status: str
+    ai_summary: Optional[str] = None
+    created_at: datetime
+    attachments: List[AttachmentResponse] = []
+
+    class Config:
+        from_attributes = True

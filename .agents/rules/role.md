@@ -146,7 +146,7 @@ Khi triển khai prompt:
 Prompt mẫu định hướng:
 
 System:
-"Bạn là trợ lý xử lý văn bản nội bộ. Chỉ tóm tắt và dự thảo dựa trên nội dung được cung cấp, giữ văn phong hành chính."
+"Bạn là trợ lý xử lý công văn và văn bản hành chính. Chỉ tóm tắt và dự thảo dựa trên nội dung được cung cấp, giữ văn phong hành chính."
 
 User:
 "Nội dung văn bản: {{document_text}}.

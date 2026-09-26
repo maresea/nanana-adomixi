@@ -1,45 +1,29 @@
-from typing import Optional, List, Dict, Any
 from pydantic import BaseModel
+from typing import Optional
+from datetime import date
 
-class AISummaryRequest(BaseModel):
-    document_id: Optional[int] = None
-    text_content: Optional[str] = None
-    is_confidential: bool = False
+class MetadataDTO(BaseModel):
+    document_number: Optional[str] = None
+    issued_date: Optional[str] = None
+    sender_org: Optional[str] = None
+    title: Optional[str] = None
+    confidence_score: Optional[float] = 0.95
 
-class AISummaryResponse(BaseModel):
-    document_id: Optional[int] = None
-    summary_points: List[str]  # Đúng 3-5 ý cốt lõi (Mục đích, Yêu cầu, Hạn chót)
-    raw_summary: str
-    provider_used: str
-    model_name: str
-    execution_time_ms: int
-
-class AIClassifyRequest(BaseModel):
-    document_id: Optional[int] = None
-    text_content: Optional[str] = None
-
-class AIClassifyResponse(BaseModel):
+class ClassificationDTO(BaseModel):
     category: str
-    urgency_level: str
-    recommended_dept_code: Optional[str] = None
-    confidence_score: float
+    urgency: str # NORMAL, URGENT, VERY_URGENT
+    reasoning: Optional[str] = None
 
-class AIDraftRequest(BaseModel):
-    document_id: int
-    task_assignment_id: int
-    directive_notes: str
-    template_type: Optional[str] = "CONG_VAN_TRA_LOI"  # Công văn trả lời, Tờ trình, Báo cáo
+class SummarizeRequest(BaseModel):
+    document_text: str
 
-class AIDraftResponse(BaseModel):
-    draft_title: str
-    draft_content: str  # Chuẩn thể thức văn bản hành chính
-    provider_used: str
-    model_name: str
+class DraftAIRequest(BaseModel):
+    document_text: str
+    instruction: str
 
-class AITaskStatusResponse(BaseModel):
-    task_id: str
-    status: str
-    task_type: str
-    result: Optional[Dict[str, Any]] = None
-    error_message: Optional[str] = None
-
+class AIResponse(BaseModel):
+    success: bool
+    data: Optional[str] = None
+    metadata: Optional[MetadataDTO] = None
+    classification: Optional[ClassificationDTO] = None
+    latency_ms: int = 0

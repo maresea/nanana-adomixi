@@ -1,11 +1,8 @@
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, declarative_base
-from app.config import settings
+from sqlalchemy.orm import declarative_base, sessionmaker
+from app.core.config import settings
 
-# Cấu hình engine kết nối
-connect_args = {}
-if settings.DATABASE_URL.startswith("sqlite"):
-    connect_args = {"check_same_thread": False}
+connect_args = {"check_same_thread": False} if settings.DATABASE_URL.startswith("sqlite") else {}
 
 engine = create_engine(
     settings.DATABASE_URL,
@@ -18,10 +15,8 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
 def get_db():
-    """Dependency cung cấp session database cho mỗi request."""
     db = SessionLocal()
     try:
         yield db
     finally:
         db.close()
-

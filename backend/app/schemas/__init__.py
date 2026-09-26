@@ -1,12 +1,13 @@
-from app.schemas.auth import LoginRequest, Token, TokenPayload, UserResponse, UserCreate
-from app.schemas.document import DocumentBase, DocumentCreate, DocumentUpdate, DocumentResponse, DocumentListResponse
-from app.schemas.task import TaskAssignCreate, TaskStatusUpdate, TaskAssignmentResponse, DraftCreate, DraftUpdate, DraftResponseSchema
-from app.schemas.ai import AISummaryRequest, AISummaryResponse, AIClassifyRequest, AIClassifyResponse, AIDraftRequest, AIDraftResponse, AITaskStatusResponse
+from app.schemas.auth import LoginRequest, TokenResponse, UserResponse
+from app.schemas.document import DocumentCreate, DocumentUpdate, DocumentResponse, AttachmentResponse
+from app.schemas.task import TaskAssignCreate, TaskStatusUpdate, TaskResponse, DraftCreate, DraftResponseModel
+from app.schemas.ai import MetadataDTO, ClassificationDTO, SummarizeRequest, DraftAIRequest
+from app.schemas.statistics import DashboardStatsResponse
 
 __all__ = [
-    "LoginRequest", "Token", "TokenPayload", "UserResponse", "UserCreate",
-    "DocumentBase", "DocumentCreate", "DocumentUpdate", "DocumentResponse", "DocumentListResponse",
-    "TaskAssignCreate", "TaskStatusUpdate", "TaskAssignmentResponse", "DraftCreate", "DraftUpdate", "DraftResponseSchema",
-    "AISummaryRequest", "AISummaryResponse", "AIClassifyRequest", "AIClassifyResponse", "AIDraftRequest", "AIDraftResponse", "AITaskStatusResponse"
+    "LoginRequest", "TokenResponse", "UserResponse",
+    "DocumentCreate", "DocumentUpdate", "DocumentResponse", "AttachmentResponse",
+    "TaskAssignCreate", "TaskStatusUpdate", "TaskResponse", "DraftCreate", "DraftResponseModel",
+    "MetadataDTO", "ClassificationDTO", "SummarizeRequest", "DraftAIRequest",
+    "DashboardStatsResponse"
 ]
-
