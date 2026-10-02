@@ -45,8 +45,8 @@ export const Navbar = () => {
             <h1 className="text-sm font-bold text-slate-800 tracking-tight group-hover:text-primary-700 transition-colors">
               HỆ THỐNG QUẢN LÝ CÔNG VĂN
             </h1>
-            <span className="hidden sm:inline-block text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary-50 text-primary-700 border border-primary-200 font-mono">
-              AI 2026
+            <span className="hidden sm:inline-block text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200">
+              Văn phòng điện tử
             </span>
           </div>
           <p className="text-[11px] text-slate-500 font-medium">Cơ quan Hành chính & Văn bản Nội bộ</p>
@@ -55,7 +55,7 @@ export const Navbar = () => {
 
       {/* Right side: Interactive Notifications & User profile */}
       <div className="flex items-center space-x-3 sm:space-x-4">
-        {/* Dropdown Chuông Cảnh báo hạn (FR6) */}
+        {/* Dropdown Chuông Cảnh báo hạn */}
         <div className="relative" ref={notifRef}>
           <button
             onClick={() => setShowNotifications(!showNotifications)}
@@ -81,7 +81,7 @@ export const Navbar = () => {
             <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded-2xl shadow-xl border border-slate-200 py-3 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
               <div className="px-4 pb-2.5 border-b border-slate-100 flex items-center justify-between">
                 <div className="flex items-center space-x-2">
-                  <span className="font-bold text-xs text-slate-800 uppercase tracking-wider">Cảnh báo hạn xử lý (FR6)</span>
+                  <span className="font-bold text-xs text-slate-800 uppercase tracking-wider">Thông báo hạn xử lý</span>
                   <span className="text-[11px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 font-semibold font-mono">
                     {totalWarnings}
                   </span>

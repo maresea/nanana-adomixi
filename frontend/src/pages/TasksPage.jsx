@@ -11,6 +11,7 @@ import {
   Sparkles,
   Send,
   FileCheck,
+  FileText,
   CheckCircle2,
   XCircle,
   Plus,
@@ -80,7 +81,14 @@ export const TasksPage = () => {
   const handleAssignSubmit = async (e) => {
     e.preventDefault();
     try {
-      await apiClient.post('/tasks/assign', assignForm);
+      let deadlineFormatted = assignForm.deadline;
+      if (deadlineFormatted && !deadlineFormatted.includes('T')) {
+        deadlineFormatted = `${deadlineFormatted}T23:59:59`;
+      }
+      await apiClient.post('/tasks/assign', {
+        ...assignForm,
+        deadline: deadlineFormatted
+      });
       alert("Phân công nhiệm vụ xử lý văn bản thành công!");
       setShowAssignModal(false);
       fetchData();
@@ -177,11 +185,13 @@ export const TasksPage = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-slate-800">
-            {user?.role === 'LEADER' ? 'Phân công Xử lý & Giám sát Tiến độ' : 'Nhiệm vụ Xử lý & Soạn Dự thảo AI'}
+          <h2 className="text-xl font-bold text-slate-800 tracking-tight">
+            {user?.role === 'LEADER' ? 'Phân công & Giám sát Tiến độ' : 'Nhiệm vụ Xử lý Văn bản'}
           </h2>
-          <p className="text-sm text-slate-500 mt-1">
-            Quy trình phối hợp: Đặt hạn chót, đôn đốc nhắc việc và ứng dụng AI soạn dự thảo công văn phản hồi (FR3, FR4, FR6, FR10)
+          <p className="text-xs text-slate-500 mt-1">
+            {user?.role === 'LEADER' 
+              ? 'Giao việc cho chuyên viên chủ trì, thiết lập thời hạn và đôn đốc giải quyết văn bản' 
+              : 'Theo dõi các công văn được phân công, cập nhật tiến độ và dự thảo phản hồi'}
           </p>
         </div>
 
@@ -191,18 +201,18 @@ export const TasksPage = () => {
             className="inline-flex items-center space-x-2 px-4 py-2.5 bg-primary-700 hover:bg-primary-800 text-white rounded-xl text-xs font-bold shadow-xs transition-all"
           >
             <Plus className="w-4 h-4" />
-            <span>Phân công nhiệm vụ mới (FR3)</span>
+            <span>Giao nhiệm vụ mới</span>
           </button>
         )}
       </div>
 
-      {/* Cảnh báo hạn xử lý tự động (FR6) */}
+      {/* Cảnh báo hạn xử lý */}
       {(alerts.overdue_tasks.length > 0 || alerts.due_soon_tasks.length > 0) && (
         <div className="space-y-2">
           {alerts.overdue_tasks.map((al) => (
             <div key={al.task_id} className="p-3.5 bg-rose-50 border border-rose-200/90 rounded-2xl flex items-center justify-between text-xs text-rose-900 font-medium shadow-xs">
               <div className="flex items-center space-x-2.5">
-                <AlertTriangle className="w-5 h-5 text-rose-600 flex-shrink-0 animate-bounce" />
+                <AlertTriangle className="w-5 h-5 text-rose-600 flex-shrink-0" />
                 <div>
                   <span className="font-bold text-rose-950 uppercase tracking-wider">Cảnh báo Quá hạn: </span>
                   Công văn <strong className="font-mono">{al.document_number}</strong> đã quá hạn ({new Date(al.deadline).toLocaleString('vi-VN')})! Cán bộ phụ trách: <strong>{al.assignee_name}</strong>.
@@ -256,8 +266,29 @@ export const TasksPage = () => {
       {/* Tasks List */}
       <div className="space-y-4">
         {filteredTasks.length === 0 ? (
-          <div className="py-16 text-center text-slate-400 text-sm bg-white rounded-2xl border border-slate-200">
-            Không có nhiệm vụ nào trong danh mục này.
+          <div className="py-16 text-center space-y-3 px-4 bg-white rounded-2xl border border-slate-200/80 shadow-xs">
+            <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center mx-auto text-slate-400">
+              <CheckSquare className="w-6 h-6" />
+            </div>
+            <div className="text-sm font-bold text-slate-700">
+              Chưa có nhiệm vụ nào trong danh mục này
+            </div>
+            <p className="text-xs text-slate-400 max-w-sm mx-auto">
+              {filterTab === 'OVERDUE'
+                ? 'Tuyệt vời! Không có công văn nào bị trễ hạn xử lý.'
+                : filterTab === 'RESOLVED'
+                ? 'Chưa có công văn nào được hoàn tất giải quyết.'
+                : 'Hiện tại bạn không có nhiệm vụ nào đang chờ xử lý.'}
+            </p>
+            {user?.role === 'LEADER' && filterTab !== 'RESOLVED' && (
+              <button
+                type="button"
+                onClick={() => setShowAssignModal(true)}
+                className="mt-2 inline-flex items-center space-x-1.5 px-4 py-2 bg-primary-700 hover:bg-primary-800 text-white rounded-xl text-xs font-semibold shadow-xs transition-all"
+              >
+                <span>+ Phân công văn bản mới</span>
+              </button>
+            )}
           </div>
         ) : (
           filteredTasks.map((t) => {
@@ -398,77 +429,88 @@ export const TasksPage = () => {
       {/* Modal Lãnh đạo Phân công (FR3) */}
       {showAssignModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in duration-150">
-          <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-4 border border-slate-100">
-            <h3 className="text-lg font-bold text-slate-800">Phân công Xử lý Văn bản (FR3)</h3>
+          <div className="bg-white rounded-2xl max-w-lg w-full max-h-[90vh] flex flex-col shadow-2xl border border-slate-100 overflow-hidden">
+            <div className="p-5 px-6 border-b border-slate-100 flex items-center justify-between flex-shrink-0 bg-slate-50/70">
+              <h3 className="text-base font-bold text-slate-800">Phân công Xử lý Văn bản</h3>
+              <button
+                type="button"
+                onClick={() => setShowAssignModal(false)}
+                className="text-slate-400 hover:text-slate-600 w-8 h-8 rounded-lg flex items-center justify-center hover:bg-slate-100 transition-colors text-sm font-bold"
+              >
+                ✕
+              </button>
+            </div>
 
-            <form onSubmit={handleAssignSubmit} className="space-y-4 text-sm">
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Chọn Công văn cần xử lý</label>
-                <select
-                  required
-                  value={assignForm.document_id}
-                  onChange={(e) => setAssignForm({ ...assignForm, document_id: e.target.value })}
-                  className="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl text-sm bg-white focus:ring-2 focus:ring-primary-600 focus:outline-none"
-                >
-                  <option value="">-- Chọn công văn --</option>
-                  {documents.map((d) => (
-                    <option key={d.id} value={d.id}>
-                      {d.document_number} - {d.title.substring(0, 55)}...
-                    </option>
-                  ))}
-                </select>
+            <form onSubmit={handleAssignSubmit} className="flex flex-col flex-1 overflow-hidden">
+              <div className="p-6 overflow-y-auto space-y-4 flex-1 text-sm">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Chọn Công văn cần xử lý</label>
+                  <select
+                    required
+                    value={assignForm.document_id}
+                    onChange={(e) => setAssignForm({ ...assignForm, document_id: e.target.value })}
+                    className="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl text-sm bg-white focus:ring-2 focus:ring-primary-600 focus:outline-none"
+                  >
+                    <option value="">-- Chọn công văn --</option>
+                    {documents.map((d) => (
+                      <option key={d.id} value={d.id}>
+                        {d.document_number} - {d.title.substring(0, 55)}...
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Giao Chuyên viên chủ trì</label>
+                  <select
+                    required
+                    value={assignForm.assignee_id}
+                    onChange={(e) => setAssignForm({ ...assignForm, assignee_id: e.target.value })}
+                    className="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl text-sm bg-white focus:ring-2 focus:ring-primary-600 focus:outline-none"
+                  >
+                    <option value="">-- Chọn cán bộ thụ lý --</option>
+                    {specialists.map((s) => (
+                      <option key={s.id} value={s.id}>
+                        {s.full_name} ({s.username})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Thời hạn xử lý (Deadline)</label>
+                  <input
+                    type="datetime-local"
+                    required
+                    value={assignForm.deadline}
+                    onChange={(e) => setAssignForm({ ...assignForm, deadline: e.target.value })}
+                    className="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-primary-600 focus:outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Ý kiến chỉ đạo</label>
+                  <textarea
+                    rows={3}
+                    value={assignForm.instruction}
+                    onChange={(e) => setAssignForm({ ...assignForm, instruction: e.target.value })}
+                    placeholder="Ghi rõ yêu cầu chỉ đạo, thời hạn báo cáo..."
+                    className="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-primary-600 focus:outline-none"
+                  />
+                </div>
               </div>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Giao Chuyên viên chủ trì</label>
-                <select
-                  required
-                  value={assignForm.assignee_id}
-                  onChange={(e) => setAssignForm({ ...assignForm, assignee_id: e.target.value })}
-                  className="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl text-sm bg-white focus:ring-2 focus:ring-primary-600 focus:outline-none"
-                >
-                  <option value="">-- Chọn cán bộ thụ lý --</option>
-                  {specialists.map((s) => (
-                    <option key={s.id} value={s.id}>
-                      {s.full_name} ({s.username})
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Thời hạn xử lý (Deadline)</label>
-                <input
-                  type="datetime-local"
-                  required
-                  value={assignForm.deadline}
-                  onChange={(e) => setAssignForm({ ...assignForm, deadline: e.target.value })}
-                  className="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-primary-600 focus:outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Ý kiến chỉ đạo</label>
-                <textarea
-                  rows={3}
-                  value={assignForm.instruction}
-                  onChange={(e) => setAssignForm({ ...assignForm, instruction: e.target.value })}
-                  placeholder="Ghi rõ yêu cầu chỉ đạo, thời hạn báo cáo..."
-                  className="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-primary-600 focus:outline-none"
-                />
-              </div>
-
-              <div className="flex justify-end space-x-2 pt-3 border-t border-slate-100">
+              <div className="p-4 px-6 bg-slate-50/80 border-t border-slate-100 flex justify-end space-x-2 flex-shrink-0">
                 <button
                   type="button"
                   onClick={() => setShowAssignModal(false)}
-                  className="px-4 py-2 border border-slate-300 text-slate-700 rounded-xl text-xs font-bold hover:bg-slate-50"
+                  className="px-4 py-2 border border-slate-300 text-slate-700 rounded-xl text-xs font-bold hover:bg-white transition-colors"
                 >
                   Đóng
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 bg-primary-700 hover:bg-primary-800 text-white rounded-xl text-xs font-bold shadow-xs"
+                  className="px-5 py-2 bg-primary-700 hover:bg-primary-800 text-white rounded-xl text-xs font-bold shadow-xs transition-colors"
                 >
                   Xác nhận giao việc
                 </button>
@@ -478,20 +520,20 @@ export const TasksPage = () => {
         </div>
       )}
 
-      {/* Modal Chuyên viên Soạn dự thảo với AI (FR4, FR10) */}
+      {/* Modal Chuyên viên Soạn dự thảo văn bản phản hồi (Split-View Human-in-the-loop) */}
       {activeTaskForDraft && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in duration-150">
-          <div className="bg-white rounded-3xl max-w-2xl w-full p-6 shadow-2xl space-y-4 border border-slate-100">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <div className="flex items-center space-x-2">
-                <div className="w-8 h-8 rounded-xl bg-rose-100 flex items-center justify-center text-rose-600">
-                  <Sparkles className="w-4 h-4 animate-pulse" />
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in duration-150">
+          <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[92vh] flex flex-col shadow-2xl border border-slate-100 overflow-hidden">
+            <div className="p-5 px-6 border-b border-slate-100 flex items-center justify-between flex-shrink-0 bg-slate-50/70">
+              <div className="flex items-center space-x-2.5">
+                <div className="w-8 h-8 rounded-xl bg-primary-700 flex items-center justify-center text-white">
+                  <FileCheck className="w-4 h-4 text-white" />
                 </div>
                 <div>
                   <h3 className="text-sm font-bold text-slate-900">
-                    Trợ lý AI Soạn thảo Dự thảo Phản hồi (FR10)
+                    Soạn thảo Dự thảo Văn bản Phản hồi
                   </h3>
-                  <p className="text-[11px] text-slate-500">Tự động sinh văn bản khung theo thể thức hành chính</p>
+                  <p className="text-[11px] text-slate-500">Khung văn bản phúc đáp theo thể thức hành chính (Nghị định 30/2020/NĐ-CP)</p>
                 </div>
               </div>
 
@@ -500,7 +542,7 @@ export const TasksPage = () => {
                   <button
                     type="button"
                     onClick={handleCopyDraft}
-                    className="px-2.5 py-1.5 border border-slate-200 hover:bg-slate-50 text-slate-600 rounded-lg text-xs font-semibold flex items-center space-x-1"
+                    className="px-2.5 py-1.5 border border-slate-200 hover:bg-white text-slate-600 rounded-xl text-xs font-semibold flex items-center space-x-1 shadow-2xs"
                     title="Sao chép nội dung"
                   >
                     {copied ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
@@ -512,46 +554,91 @@ export const TasksPage = () => {
                   type="button"
                   onClick={() => handleGenerateAIDraft(activeTaskForDraft)}
                   disabled={generatingAiDraft}
-                  className="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold flex items-center space-x-1.5 disabled:opacity-50 shadow-xs"
+                  className="px-3.5 py-1.5 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-semibold flex items-center space-x-1.5 disabled:opacity-50 shadow-xs transition-colors"
                 >
-                  <Sparkles className={`w-3.5 h-3.5 ${generatingAiDraft ? 'animate-spin' : ''}`} />
-                  <span>{generatingAiDraft ? 'Đang tạo dự thảo...' : 'AI Tạo dự thảo'}</span>
+                  <span>{generatingAiDraft ? 'Đang soạn thảo...' : 'Tự động tạo khung dự thảo'}</span>
                 </button>
               </div>
             </div>
 
-            <div className="bg-slate-50 p-3 rounded-xl border border-slate-200/80 text-xs text-slate-600">
-              Chỉ đạo của Lãnh đạo: <strong className="text-slate-800">{activeTaskForDraft.instruction || 'Thực hiện theo chức năng nhiệm vụ.'}</strong>
+            {/* Split view: Left context, Right editor */}
+            <div className="p-6 overflow-y-auto grid grid-cols-1 md:grid-cols-12 gap-5 flex-1 text-sm">
+              {/* Cột trái: Căn cứ & Ý kiến chỉ đạo */}
+              <div className="md:col-span-5 space-y-3.5">
+                <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3">
+                  <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider border-b border-slate-200/80 pb-2 flex items-center space-x-1.5">
+                    <FileText className="w-3.5 h-3.5 text-primary-600" />
+                    <span>Căn cứ văn bản gốc</span>
+                  </h4>
+                  <div>
+                    <span className="text-[11px] text-slate-400 block font-medium">Số ký hiệu:</span>
+                    <span className="font-mono font-bold text-xs text-primary-900">
+                      {activeTaskForDraft.document?.document_number || 'Chưa gắn số hiệu'}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-[11px] text-slate-400 block font-medium">Trích yếu nội dung:</span>
+                    <p className="text-xs font-medium text-slate-800 leading-snug line-clamp-3">
+                      {activeTaskForDraft.document?.title || 'Không có trích yếu'}
+                    </p>
+                  </div>
+                  {activeTaskForDraft.document?.ai_summary && (
+                    <div>
+                      <span className="text-[11px] text-slate-400 block font-medium">Tóm tắt cốt lõi:</span>
+                      <p className="text-[11px] text-slate-600 leading-relaxed bg-white p-2.5 rounded-lg border border-slate-200/80 whitespace-pre-line">
+                        {activeTaskForDraft.document.ai_summary}
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                <div className="bg-amber-50/70 p-4 rounded-xl border border-amber-200/80 space-y-1.5">
+                  <h4 className="text-xs font-bold text-amber-800 uppercase tracking-wider flex items-center space-x-1.5">
+                    <Clock className="w-3.5 h-3.5 text-amber-600" />
+                    <span>Ý kiến chỉ đạo của Lãnh đạo</span>
+                  </h4>
+                  <p className="text-xs font-semibold text-slate-800 leading-relaxed pt-1">
+                    "{activeTaskForDraft.instruction || 'Thực hiện theo chức năng nhiệm vụ được giao.'}"
+                  </p>
+                  <div className="text-[10px] text-slate-500 pt-1 font-mono">
+                    Hạn chót xử lý: {activeTaskForDraft.deadline ? new Date(activeTaskForDraft.deadline).toLocaleDateString('vi-VN') : 'Không quy định'}
+                  </div>
+                </div>
+              </div>
+
+              {/* Cột phải: Soạn thảo dự thảo */}
+              <div className="md:col-span-7 flex flex-col">
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="block text-xs font-bold text-slate-700">
+                    Nội dung Dự thảo Công văn phản hồi:
+                  </label>
+                  <span className="text-[11px] text-slate-400 italic">Có thể sửa trực tiếp</span>
+                </div>
+                <textarea
+                  rows={13}
+                  value={draftContent}
+                  onChange={(e) => setDraftContent(e.target.value)}
+                  placeholder="Nhập nội dung dự thảo hoặc bấm 'Tự động tạo khung dự thảo' để hệ thống lập sẵn mẫu hành chính, sau đó rà soát và bổ sung chi tiết..."
+                  className="w-full p-3.5 border border-slate-300 rounded-xl text-xs font-sans leading-relaxed focus:ring-1 focus:ring-primary-600 focus:outline-none flex-1 min-h-[280px]"
+                />
+              </div>
             </div>
 
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">
-                Nội dung Dự thảo Công văn phản hồi (Chuyên viên chỉnh sửa tự do):
-              </label>
-              <textarea
-                rows={10}
-                value={draftContent}
-                onChange={(e) => setDraftContent(e.target.value)}
-                placeholder="Bấm 'AI Tạo dự thảo' để trợ lý sinh văn bản khung chuẩn hành chính (Kính gửi, Căn cứ, Nội dung báo cáo), sau đó bạn rà soát và bổ sung chi tiết..."
-                className="w-full p-3.5 border border-slate-300 rounded-xl text-xs font-sans leading-relaxed focus:ring-2 focus:ring-primary-600 focus:outline-none"
-              />
-            </div>
-
-            <div className="flex justify-end space-x-2 pt-2 border-t border-slate-100">
+            <div className="p-4 px-6 bg-slate-50 border-t border-slate-100 flex justify-end space-x-2 flex-shrink-0">
               <button
                 type="button"
                 onClick={() => setActiveTaskForDraft(null)}
-                className="px-4 py-2 border border-slate-300 text-slate-700 rounded-xl text-xs font-bold hover:bg-slate-50"
+                className="px-4 py-2 border border-slate-300 text-slate-700 rounded-xl text-xs font-semibold hover:bg-white transition-colors"
               >
                 Hủy bỏ
               </button>
               <button
                 type="button"
                 onClick={() => handleSubmitDraft(activeTaskForDraft.id)}
-                className="px-5 py-2 bg-primary-700 hover:bg-primary-800 text-white rounded-xl text-xs font-bold shadow-xs flex items-center space-x-1.5"
+                className="px-5 py-2 bg-primary-700 hover:bg-primary-800 text-white rounded-xl text-xs font-semibold shadow-xs flex items-center space-x-1.5 transition-colors"
               >
                 <Send className="w-3.5 h-3.5" />
-                <span>Trình Lãnh đạo phê duyệt (FR4)</span>
+                <span>Trình Lãnh đạo phê duyệt</span>
               </button>
             </div>
           </div>

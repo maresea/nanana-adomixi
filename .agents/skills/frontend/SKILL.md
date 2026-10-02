@@ -1,6 +1,6 @@
 ---
 name: frontend-development-skill
-description: Quy chuẩn kiến trúc, giao diện người dùng (React/Vite), quản lý trạng thái, phân quyền UI theo 3 vai trò và tích hợp trải nghiệm AI (Human-in-the-loop) cho Hệ thống Quản lý Công văn và Văn bản Nội bộ Tích hợp AI.
+description: Quy chuẩn kiến trúc Frontend (React/Vite), quản lý trạng thái, phân quyền theo 3 vai trò và tích hợp trải nghiệm AI (Human-in-the-loop); tuân thủ toàn diện hệ thống thiết kế giao diện từ skill ui-ux.
 ---
 
 # Skill: Phát triển Frontend Giao diện & Trải nghiệm AI (Frontend Development & AI UX)
@@ -14,10 +14,9 @@ Skill này hướng dẫn quy chuẩn xây dựng giao diện ứng dụng web c
 - **Phân quyền giao diện theo 3 Vai trò**:
   - Giao diện tùy biến theo vai trò người dùng sau khi đăng nhập (`CLERK`, `LEADER`, `SPECIALIST`).
   - Ẩn hoàn toàn các nút thao tác và menu điều hướng mà vai trò đó không có thẩm quyền (ngăn chặn thao tác trái phép ngay từ phía Client).
-- **Thẩm mỹ Hành chính Hiện đại (Clean Administrative Design)**:
-  - Tông màu chủ đạo trang nhã, nghiêm túc: Xanh Navy/Slate (`#1E40AF`, `#0F172A`), nền trắng/xám nhạt (`#F8FAFC`).
-  - Điểm nhấn AI nổi bật nhưng thanh lịch: Hồng pastel/đỏ nhẹ (`#FEE2E2`, `#EF4444`) đồng bộ với nhận diện màu sắc trong `plantuml-diagram-skill`.
-  - Bố cục lưới rõ ràng, dễ nhìn, font chữ hiện đại (Inter / Roboto / Arial), tối ưu để trình chiếu slide và bảo vệ đồ án trực quan.
+- **Tuân thủ Hệ thống Thiết kế & Thẩm mỹ UI/UX ([ui-ux](file:///d:/nanana-adomixi/.agents/skills/ui-ux/SKILL.md))**:
+  - Mọi quy chuẩn về **bố cục (layout), khoảng cách (spacing), design tokens, kiểu dáng component (Button, Input, Modal, Table, Empty State)** và quy trình thiết kế bắt buộc tuân thủ theo skill **[ui-ux](file:///d:/nanana-adomixi/.agents/skills/ui-ux/SKILL.md)**.
+  - `frontend-development-skill` **không tự định nghĩa lại quy chuẩn thẩm mỹ**, mà chỉ tập trung vào kiến trúc mã nguồn (React, Router, State Management, API integration, Role-based Routing và logic kết nối AI).
 - **Trải nghiệm AI lấy con người làm trung tâm (Human-in-the-loop UX)**:
   - Mọi kết quả do AI sinh ra (tóm tắt, gợi ý phân loại, bóc tách metadata, dự thảo phản hồi) **luôn luôn hiển thị ở chế độ xem trước (Preview) và cho phép chỉnh sửa (Editable)**.
   - Cung cấp nút thao tác rõ ràng: *"Áp dụng vào biểu mẫu"*, *"Chỉnh sửa lại"*, *"Tạo lại bằng AI"*. Không bao giờ tự động lưu kết quả AI vào cơ sở dữ liệu nếu chưa có thao tác xác nhận của người dùng.
@@ -119,9 +118,9 @@ frontend/
 
 Để đảm bảo tính khoa học và thuyết phục khi báo cáo đồ án, mọi thành phần AI trên Frontend bắt buộc phải tuân theo 4 quy tắc:
 
-### 5.1. Nhận diện Trực quan Thống nhất (Visual Identity)
+### 5.1. Nhận diện Trực quan Thống nhất (Visual Identity theo [ui-ux](file:///d:/nanana-adomixi/.agents/skills/ui-ux/SKILL.md))
 - Thành phần AI luôn có icon **Sparkles** (✨) đi kèm.
-- Nền khung chứa kết quả AI sử dụng màu tím nhạt hoặc hồng/đỏ nhạt (`bg-red-50 border-red-200 text-red-900`) để phân biệt rạch ròi với dữ liệu người dùng nhập thủ công.
+- Nền khung chứa kết quả AI sử dụng token màu nhấn Rose/Pink nhạt (`bg-rose-50/50 border-rose-200/80 text-rose-900`) chuẩn theo bảng token màu của [ui-ux](file:///d:/nanana-adomixi/.agents/skills/ui-ux/SKILL.md), giúp người dùng phân biệt rạch ròi với dữ liệu người dùng nhập thủ công mà không làm vỡ phong cách tổng thể.
 
 ### 5.2. Luôn có Trạng thái Đang Xử lý (Loading & Skeleton)
 - Việc gọi mô hình AI/LLM thường mất từ 2–5 giây. Bắt buộc hiển thị spinner loading hoặc hiệu ứng sóng skeleton:

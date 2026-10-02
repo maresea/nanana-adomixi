@@ -28,6 +28,7 @@ export const DocumentDetailPage = () => {
   const { user } = useAuth();
   const [doc, setDoc] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
     apiClient.get(`/documents/${id}`)
@@ -35,6 +36,29 @@ export const DocumentDetailPage = () => {
       .catch(err => console.error(err))
       .finally(() => setLoading(false));
   }, [id]);
+
+  const handleUploadAttachment = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    const formData = new FormData();
+    formData.append('file', file);
+    try {
+      const res = await apiClient.post(`/documents/${doc.id}/attachments`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      setDoc(prev => ({
+        ...prev,
+        attachments: [...(prev.attachments || []), res.data]
+      }));
+      alert('Tải lên tệp đính kèm thành công!');
+    } catch (err) {
+      alert('Lỗi tải tệp: ' + (err.response?.data?.detail || err.message));
+    } finally {
+      setUploading(false);
+      e.target.value = '';
+    }
+  };
 
   if (loading) {
     return (
@@ -77,9 +101,9 @@ export const DocumentDetailPage = () => {
       <div className="flex items-center justify-between">
         <Link
           to="/documents"
-          className="inline-flex items-center space-x-1.5 text-xs font-bold text-slate-600 hover:text-slate-900 transition-colors"
+          className="inline-flex items-center space-x-1.5 px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-all shadow-2xs"
         >
-          <ArrowLeft className="w-4 h-4" />
+          <ArrowLeft className="w-4 h-4 text-slate-500" />
           <span>Quay lại sổ công văn</span>
         </Link>
 
@@ -89,7 +113,7 @@ export const DocumentDetailPage = () => {
             className="inline-flex items-center space-x-2 px-4 py-2.5 bg-primary-700 hover:bg-primary-800 text-white rounded-xl text-xs font-bold shadow-xs transition-all"
           >
             <CheckSquare className="w-4 h-4" />
-            <span>Phân công xử lý công văn này (FR3)</span>
+            <span>Phân công xử lý công văn này</span>
           </Link>
         )}
       </div>
@@ -179,14 +203,42 @@ export const DocumentDetailPage = () => {
 
         {/* Tệp đính kèm số hóa */}
         <div className="p-6">
-          <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider mb-3 flex items-center space-x-1.5">
-            <Paperclip className="w-4 h-4 text-slate-500" />
-            <span>Tệp văn bản số hóa đính kèm ({doc.attachments?.length || 0})</span>
-          </h4>
+          <div className="flex items-center justify-between mb-3">
+            <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center space-x-1.5">
+              <Paperclip className="w-4 h-4 text-slate-500" />
+              <span>Tệp văn bản số hóa đính kèm ({doc.attachments?.length || 0})</span>
+            </h4>
+            {user?.role === 'CLERK' && (
+              <label className="inline-flex items-center space-x-1.5 px-3 py-1.5 bg-primary-50 hover:bg-primary-100 text-primary-700 border border-primary-200 rounded-xl text-xs font-semibold cursor-pointer transition-all shadow-2xs">
+                <Paperclip className="w-3.5 h-3.5" />
+                <span>{uploading ? 'Đang tải lên...' : 'Tải thêm tệp'}</span>
+                <input
+                  type="file"
+                  onChange={handleUploadAttachment}
+                  disabled={uploading}
+                  className="hidden"
+                  accept=".pdf,.docx,.doc,.txt"
+                />
+              </label>
+            )}
+          </div>
 
           {doc.attachments?.length === 0 ? (
-            <div className="p-4 bg-slate-50 rounded-xl text-center text-xs text-slate-400 italic">
-              Chưa có tệp đính kèm nào được tải lên cho hồ sơ này.
+            <div className="p-6 bg-slate-50/80 border border-dashed border-slate-200 rounded-xl text-center space-y-2">
+              <Paperclip className="w-6 h-6 text-slate-300 mx-auto" />
+              <p className="text-xs text-slate-500 font-medium">Chưa có tệp đính kèm nào được tải lên cho hồ sơ này.</p>
+              {user?.role === 'CLERK' && (
+                <label className="inline-flex items-center space-x-1.5 px-3.5 py-1.5 bg-white border border-slate-200 text-primary-700 rounded-xl text-xs font-semibold cursor-pointer hover:bg-slate-50 shadow-2xs">
+                  <span>Chọn tệp tải lên (PDF, DOCX)</span>
+                  <input
+                    type="file"
+                    onChange={handleUploadAttachment}
+                    disabled={uploading}
+                    className="hidden"
+                    accept=".pdf,.docx,.doc,.txt"
+                  />
+                </label>
+              )}
             </div>
           ) : (
             <div className="space-y-2">

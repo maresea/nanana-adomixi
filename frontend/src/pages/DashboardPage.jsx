@@ -40,28 +40,32 @@ export const DashboardPage = () => {
       value: stats?.total_documents || 0,
       sub: `${stats?.incoming_count || 0} đến • ${stats?.outgoing_count || 0} đi`,
       icon: FileText,
-      color: 'bg-blue-50 text-blue-700 border-blue-200'
+      color: 'bg-blue-50 text-blue-700 border-blue-200',
+      isUrgent: false
     },
     {
       label: 'Nhiệm vụ đang xử lý',
       value: stats?.pending_tasks || 0,
       sub: 'Chuyên viên đang thụ lý',
       icon: Clock,
-      color: 'bg-amber-50 text-amber-700 border-amber-200'
+      color: 'bg-amber-50 text-amber-700 border-amber-200',
+      isUrgent: false
     },
     {
       label: 'Công văn quá hạn',
       value: stats?.overdue_tasks || 0,
       sub: stats?.overdue_tasks > 0 ? 'Cần chỉ đạo đôn đốc ngay' : 'Không có văn bản trễ hạn',
       icon: AlertTriangle,
-      color: stats?.overdue_tasks > 0 ? 'bg-rose-50 text-rose-700 border-rose-200 ring-2 ring-rose-200' : 'bg-slate-50 text-slate-700 border-slate-200'
+      color: stats?.overdue_tasks > 0 ? 'bg-rose-100 text-rose-700 border-rose-300 ring-2 ring-rose-200' : 'bg-slate-50 text-slate-700 border-slate-200',
+      isUrgent: (stats?.overdue_tasks || 0) > 0
     },
     {
       label: 'Đã hoàn thành đúng hạn',
       value: stats?.completed_tasks || 0,
       sub: 'Đạt tiến độ quy định',
       icon: CheckCircle2,
-      color: 'bg-emerald-50 text-emerald-700 border-emerald-200'
+      color: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+      isUrgent: false
     }
   ];
 
@@ -71,13 +75,13 @@ export const DashboardPage = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center space-x-2">
-            <h2 className="text-2xl font-bold text-slate-800">Bảng điều khiển Thống kê Giám sát</h2>
-            <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-primary-100 text-primary-800 border border-primary-200">
-              Dành cho Lãnh đạo (FR11)
+            <h2 className="text-xl font-bold text-slate-800 tracking-tight">Tổng quan Quản lý & Điều hành Văn bản</h2>
+            <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200">
+              Thời gian thực
             </span>
           </div>
-          <p className="text-sm text-slate-500 mt-1">
-            Tổng hợp tình hình luân chuyển công văn và chỉ số hiệu suất giải quyết công việc theo thời gian thực
+          <p className="text-xs text-slate-500 mt-1">
+            Tổng hợp tình hình luân chuyển công văn và chỉ số hiệu suất giải quyết công việc trong toàn đơn vị
           </p>
         </div>
 
@@ -92,20 +96,39 @@ export const DashboardPage = () => {
         </div>
       </div>
 
-      {/* KPI Cards */}
+      {/* KPI Cards (Gu 2: Cảnh báo khẩn cấp khi có công văn trễ hạn) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
         {kpis.map((kpi, idx) => {
           const Icon = kpi.icon;
           return (
-            <div key={idx} className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs hover:shadow-md transition-all">
+            <div
+              key={idx}
+              className={`p-5 rounded-2xl border transition-all ${
+                kpi.isUrgent
+                  ? 'bg-rose-50/50 border-rose-300 ring-2 ring-rose-200/80 shadow-md shadow-rose-100'
+                  : 'bg-white border-slate-200/80 shadow-xs hover:shadow-md'
+              }`}
+            >
               <div className="flex items-center justify-between mb-3">
-                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">{kpi.label}</span>
+                <div className="flex items-center space-x-1.5">
+                  <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">{kpi.label}</span>
+                  {kpi.isUrgent && (
+                    <span className="relative flex h-2 w-2 ml-1">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-600"></span>
+                    </span>
+                  )}
+                </div>
                 <div className={`w-10 h-10 rounded-xl flex items-center justify-center border ${kpi.color}`}>
                   <Icon className="w-5 h-5" />
                 </div>
               </div>
-              <div className="text-3xl font-extrabold text-slate-900">{kpi.value}</div>
-              <div className="text-xs text-slate-500 mt-1.5 font-medium">{kpi.sub}</div>
+              <div className={`text-3xl font-extrabold ${kpi.isUrgent ? 'text-rose-700' : 'text-slate-900'}`}>
+                {kpi.value}
+              </div>
+              <div className={`text-xs mt-1.5 font-medium ${kpi.isUrgent ? 'text-rose-600 font-semibold' : 'text-slate-500'}`}>
+                {kpi.sub}
+              </div>
             </div>
           );
         })}
@@ -124,7 +147,12 @@ export const DashboardPage = () => {
             <div>
               <div className="flex justify-between text-xs font-medium text-slate-700 mb-1">
                 <span>Công văn đến (Bên ngoài gửi đến)</span>
-                <span className="font-bold">{stats?.incoming_count || 0} văn bản</span>
+                <span className="font-bold text-slate-800">
+                  {stats?.incoming_count || 0} văn bản
+                  <span className="text-slate-500 font-medium ml-1">
+                    ({stats?.total_documents ? Math.round((stats.incoming_count / stats.total_documents) * 100) : 0}%)
+                  </span>
+                </span>
               </div>
               <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
                 <div 
@@ -137,7 +165,12 @@ export const DashboardPage = () => {
             <div>
               <div className="flex justify-between text-xs font-medium text-slate-700 mb-1">
                 <span>Công văn đi (Gửi ra ngoài)</span>
-                <span className="font-bold">{stats?.outgoing_count || 0} văn bản</span>
+                <span className="font-bold text-slate-800">
+                  {stats?.outgoing_count || 0} văn bản
+                  <span className="text-slate-500 font-medium ml-1">
+                    ({stats?.total_documents ? Math.round((stats.outgoing_count / stats.total_documents) * 100) : 0}%)
+                  </span>
+                </span>
               </div>
               <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
                 <div 
@@ -150,7 +183,12 @@ export const DashboardPage = () => {
             <div>
               <div className="flex justify-between text-xs font-medium text-slate-700 mb-1">
                 <span>Văn bản nội bộ cơ quan</span>
-                <span className="font-bold">{stats?.internal_count || 0} văn bản</span>
+                <span className="font-bold text-slate-800">
+                  {stats?.internal_count || 0} văn bản
+                  <span className="text-slate-500 font-medium ml-1">
+                    ({stats?.total_documents ? Math.round((stats.internal_count / stats.total_documents) * 100) : 0}%)
+                  </span>
+                </span>
               </div>
               <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
                 <div 

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Sparkles, RefreshCw, CheckCircle2 } from 'lucide-react';
+import { FileText, RefreshCw } from 'lucide-react';
 import apiClient from '../../services/apiClient';
 
 export const AISummaryBox = ({ documentId, initialSummary, fullText, onSummaryUpdated }) => {
@@ -25,42 +25,42 @@ export const AISummaryBox = ({ documentId, initialSummary, fullText, onSummaryUp
         onSummaryUpdated(newSummary);
       }
     } catch (err) {
-      alert("Lỗi khi gọi AI tóm tắt: " + (err.response?.data?.detail || err.message));
+      alert("Lỗi khi gọi tóm tắt: " + (err.response?.data?.detail || err.message));
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="bg-rose-50/60 border border-rose-200/80 rounded-xl p-5 shadow-sm transition-all">
-      <div className="flex items-center justify-between mb-3 border-b border-rose-200/60 pb-3">
-        <div className="flex items-center space-x-2">
-          <div className="w-7 h-7 rounded-lg bg-rose-100 flex items-center justify-center text-rose-600">
-            <Sparkles className="w-4 h-4" />
+    <div className="bg-slate-50 border border-slate-200 rounded-2xl p-5 shadow-xs transition-all">
+      <div className="flex items-center justify-between mb-3 border-b border-slate-200/80 pb-3">
+        <div className="flex items-center space-x-2.5">
+          <div className="w-8 h-8 rounded-xl bg-primary-700 flex items-center justify-center text-white">
+            <FileText className="w-4 h-4" />
           </div>
           <div>
-            <h4 className="text-sm font-bold text-rose-900">Bản tóm tắt thông minh của AI (FR8)</h4>
-            <p className="text-[11px] text-rose-700">Hỗ trợ Lãnh đạo nắm bắt 3–5 ý chính trong 10 giây</p>
+            <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider">Tóm tắt Nội dung Văn bản</h4>
+            <p className="text-[11px] text-slate-500">Trích xuất các ý chính hỗ trợ lãnh đạo duyệt và chỉ đạo nhanh</p>
           </div>
         </div>
 
         <button
           onClick={handleGenerateSummary}
           disabled={loading}
-          className="flex items-center space-x-1.5 px-3 py-1.5 text-xs font-semibold text-rose-700 bg-white border border-rose-300 rounded-lg hover:bg-rose-100/60 disabled:opacity-50 transition-all shadow-xs"
+          className="flex items-center space-x-1.5 px-3 py-1.5 text-xs font-semibold text-slate-700 bg-white border border-slate-300 rounded-xl hover:bg-slate-100/80 disabled:opacity-50 transition-all shadow-2xs"
         >
           <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-          <span>{loading ? 'Đang tóm tắt...' : summary ? 'Tóm tắt lại' : 'Tạo tóm tắt AI'}</span>
+          <span>{loading ? 'Đang tóm tắt...' : summary ? 'Cập nhật tóm tắt' : 'Tự động tóm tắt'}</span>
         </button>
       </div>
 
       {summary ? (
-        <div className="text-xs text-rose-950 leading-relaxed whitespace-pre-line bg-white/80 p-3.5 rounded-lg border border-rose-100 font-sans">
+        <div className="text-xs text-slate-800 leading-relaxed whitespace-pre-line bg-white p-4 rounded-xl border border-slate-200/80 font-sans shadow-2xs">
           {summary}
         </div>
       ) : (
-        <div className="text-center py-4 text-xs text-rose-600 italic">
-          Chưa có bản tóm tắt AI. Bấm "Tạo tóm tắt AI" để hệ thống tự động đọc và trích rút 3–5 ý chính.
+        <div className="text-center py-4 text-xs text-slate-500 italic">
+          Chưa có bản tóm tắt nội dung. Bấm "Tự động tóm tắt" để hệ thống tổng hợp các ý chính của văn bản.
         </div>
       )}
     </div>

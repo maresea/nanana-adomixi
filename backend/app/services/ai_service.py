@@ -25,16 +25,28 @@ class AIService:
             num_match = re.search(r"Số:?\s*([0-9]+[a-zA-Z0-9\/\-_]+)", user_content)
             doc_num = num_match.group(1) if num_match else "108/UBND-VX"
 
-            # 2. Trích xuất ngày ban hành
+            # 2. Trích xuất ngày ban hành (Hỗ trợ định dạng: Ngày DD tháng MM năm YYYY, DD/MM/YYYY, DD-MM-YYYY, YYYY-MM-DD)
             date_match = re.search(r"Ngày\s+([0-9]{1,2})\s+tháng\s+([0-9]{1,2})\s+năm\s+([0-9]{4})", user_content, re.IGNORECASE)
             if date_match:
                 d, m, y = date_match.groups()
                 issued_date = f"{y}-{int(m):02d}-{int(d):02d}"
             else:
-                issued_date = "2026-03-24"
+                date_slash = re.search(r"\b([0-9]{1,2})[\/\-]([0-9]{1,2})[\/\-]([0-9]{4})\b", user_content)
+                if date_slash:
+                    d, m, y = date_slash.groups()
+                    issued_date = f"{y}-{int(m):02d}-{int(d):02d}"
+                else:
+                    date_iso = re.search(r"\b([0-9]{4})[\/\-]([0-9]{1,2})[\/\-]([0-9]{1,2})\b", user_content)
+                    if date_iso:
+                        y, m, d = date_iso.groups()
+                        issued_date = f"{y}-{int(m):02d}-{int(d):02d}"
+                    else:
+                        issued_date = "2026-03-24"
 
             # 3. Trích xuất cơ quan ban hành
-            org_match = re.search(r"^(ỦY BAN NHÂN DÂN[^\n]+|SỞ [^\n]+|BỘ [^\n]+|CỤC [^\n]+|CHI CỤC [^\n]+|TRƯỜNG [^\n]+)", user_content, re.MULTILINE | re.IGNORECASE)
+            org_match = re.search(r"^(ỦY BAN NHÂN DÂN[^\n]+|SỞ [^\n]+|BỘ [^\n]+|CỤC [^\n]+|CHI CỤC [^\n]+|TRƯỜNG [^\n]+|VĂN PHÒNG CHÍNH PHỦ[^\n]*|TÒA ÁN[^\n]+|VIỆN KIỂM SÁT[^\n]+|CÔNG AN[^\n]+|TỔNG CÔNG TY[^\n]+|TẬP ĐOÀN[^\n]+|BAN QUẢN LÝ[^\n]+)", user_content, re.MULTILINE | re.IGNORECASE)
+            if not org_match:
+                org_match = re.search(r"(ỦY BAN NHÂN DÂN[^\n,]+|SỞ [^\n,]+|BỘ [^\n,]+|CỤC [^\n,]+|VĂN PHÒNG CHÍNH PHỦ|TÒA ÁN[^\n,]+|CÔNG AN[^\n,]+)", user_content, re.IGNORECASE)
             sender_org = org_match.group(1).strip() if org_match else "Ủy ban nhân dân Tỉnh"
 
             # 4. Trích xuất trích yếu (V/v)
@@ -72,7 +84,7 @@ class AIService:
                 )
             return summary, latency
 
-        elif "phân loại" in system_prompt.lower():
+        elif "phân loại" in system_prompt.lower() or "thể loại" in system_prompt.lower() or "category" in system_prompt.lower():
             is_urgent = any(w in user_content.lower() for w in ["khẩn", "ngay", "hỏa tốc", "gấp", "thượng khẩn"])
             urgency = "VERY_URGENT" if any(w in user_content.lower() for w in ["hỏa tốc", "thượng khẩn"]) else ("URGENT" if is_urgent else "NORMAL")
 
@@ -215,7 +227,7 @@ class AIService:
 
     def suggest_classification(self, document_text: str, db: Optional[Session] = None) -> ClassificationDTO:
         system_prompt = (
-            "Phân tích nội dung công văn và đề xuất thể loại văn bản (category) "
+            "Phân tích nội dung công văn, phân loại và đề xuất thể loại văn bản (category) "
             "cùng mức độ ưu tiên (urgency: NORMAL, URGENT, VERY_URGENT). "
             "Trả về duy nhất JSON hợp lệ gồm: category, urgency, reasoning."
         )
@@ -224,8 +236,9 @@ class AIService:
         try:
             dto = ClassificationDTO.model_validate_json(clean_res)
         except Exception:
-            urgency = "URGENT" if any(w in document_text.lower() for w in ["khẩn", "ngay", "hỏa tốc", "gấp"]) else "NORMAL"
-            dto = ClassificationDTO(category="Chỉ đạo điều hành", urgency=urgency, reasoning="Tự động phân loại.")
+            is_urgent = any(w in document_text.lower() for w in ["khẩn", "ngay", "hỏa tốc", "gấp", "thượng khẩn"])
+            urgency = "VERY_URGENT" if any(w in document_text.lower() for w in ["hỏa tốc", "thượng khẩn"]) else ("URGENT" if is_urgent else "NORMAL")
+            dto = ClassificationDTO(category="Chỉ đạo điều hành", urgency=urgency, reasoning="Tự động phân loại qua bộ lọc dự phòng.")
 
         if db:
             log = AITaskLog(task_type="CLASSIFY", prompt_input=document_text[:500], raw_response=raw_res, latency_ms=latency)

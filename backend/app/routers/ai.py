@@ -1,8 +1,9 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
 from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.schemas.ai import MetadataDTO, ClassificationDTO, SummarizeRequest, DraftAIRequest, AIResponse
 from app.services.ai_service import ai_service
+from app.services.file_service import file_service
 from app.dependencies import get_current_user, require_roles
 from app.models.user import User
 
@@ -64,3 +65,30 @@ def generate_draft_api(
         raise HTTPException(status_code=400, detail="Nội dung văn bản gốc không được để trống")
     draft_content = ai_service.generate_draft(req.document_text, req.instruction, db=db)
     return {"draft_content": draft_content}
+
+@router.post("/parse-file", summary="Trích xuất nội dung văn bản từ tệp đính kèm (PDF/DOCX/TXT)")
+async def parse_file_api(
+    file: UploadFile = File(...),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Nhận tệp đính kèm (.pdf, .docx, .txt), trích xuất chuỗi text thô
+    để nạp vào khung bóc tách AI hoặc xem trước nội dung.
+    """
+    if not file.filename:
+        raise HTTPException(status_code=400, detail="Tên tệp không hợp lệ")
+
+    content = await file.read()
+    if not content:
+        raise HTTPException(status_code=400, detail="Tệp tải lên không có dữ liệu (rỗng)")
+
+    extracted_text = file_service.extract_text_from_bytes(content, file.filename)
+    if not extracted_text.strip():
+        extracted_text = "Không tìm thấy nội dung văn bản trong tệp hoặc tệp ở định dạng ảnh scan chưa qua OCR."
+
+    return {
+        "filename": file.filename,
+        "size": len(content),
+        "text": extracted_text
+    }
+

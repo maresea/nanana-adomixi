@@ -45,13 +45,12 @@ export const LoginPage = () => {
       <div className="max-w-md w-full bg-white rounded-3xl shadow-2xl overflow-hidden border border-slate-100 z-10">
         {/* Header Hero */}
         <div className="bg-gradient-to-br from-primary-900 via-primary-800 to-slate-900 p-8 text-white text-center relative">
-          <div className="w-16 h-16 bg-white/10 rounded-2xl flex items-center justify-center mx-auto mb-4 backdrop-blur-md border border-white/20 shadow-lg">
-            <FileText className="w-9 h-9 text-primary-200" />
+          <div className="w-14 h-14 bg-white/10 rounded-2xl flex items-center justify-center mx-auto mb-3 backdrop-blur-md border border-white/20 shadow-md">
+            <FileText className="w-8 h-8 text-primary-200" />
           </div>
-          <h2 className="text-xl font-bold tracking-tight">HỆ THỐNG QUẢN LÝ CÔNG VĂN</h2>
-          <p className="text-xs text-primary-200 mt-1 font-medium flex items-center justify-center space-x-1.5">
-            <Sparkles className="w-4 h-4 text-rose-300 animate-pulse" />
-            <span>Tích hợp Trợ lý Trí tuệ Nhân tạo (AI)</span>
+          <h2 className="text-lg font-bold tracking-tight">HỆ THỐNG QUẢN LÝ CÔNG VĂN</h2>
+          <p className="text-xs text-primary-200 mt-1 font-normal">
+            Cơ quan Hành chính & Văn bản Nội bộ
           </p>
         </div>
 
@@ -111,8 +110,8 @@ export const LoginPage = () => {
 
           {/* Quick select demo buttons with descriptive subtitles */}
           <div className="mt-8 pt-6 border-t border-slate-100">
-            <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider text-center mb-3">
-              ⚡ Chọn nhanh tài khoản Demo (Mật khẩu: 123456)
+            <div className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider text-center mb-3">
+              Tài khoản mẫu trải nghiệm (Mật khẩu: 123456)
             </div>
             <div className="grid grid-cols-3 gap-2 text-left">
               <button
@@ -120,12 +119,12 @@ export const LoginPage = () => {
                 onClick={() => handleQuickSelect('vanthu', '123456')}
                 className={`p-2.5 rounded-xl border text-xs transition-all ${
                   username === 'vanthu'
-                    ? 'bg-blue-50/80 border-blue-400 text-blue-900 shadow-xs'
+                    ? 'bg-blue-50 border-blue-400 text-blue-900 shadow-xs'
                     : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
                 }`}
               >
                 <div className="font-bold">Văn thư</div>
-                <div className="text-[10px] text-slate-500 mt-0.5">Tiếp nhận & OCR</div>
+                <div className="text-[10px] text-slate-500 mt-0.5">Tiếp nhận & Vào sổ</div>
               </button>
 
               <button
@@ -133,12 +132,12 @@ export const LoginPage = () => {
                 onClick={() => handleQuickSelect('lanhdao', '123456')}
                 className={`p-2.5 rounded-xl border text-xs transition-all ${
                   username === 'lanhdao'
-                    ? 'bg-purple-50/80 border-purple-400 text-purple-900 shadow-xs'
+                    ? 'bg-blue-50 border-blue-400 text-blue-900 shadow-xs'
                     : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
                 }`}
               >
                 <div className="font-bold">Lãnh đạo</div>
-                <div className="text-[10px] text-slate-500 mt-0.5">Giao việc & Duyệt</div>
+                <div className="text-[10px] text-slate-500 mt-0.5">Phân công & Giám sát</div>
               </button>
 
               <button
@@ -146,12 +145,12 @@ export const LoginPage = () => {
                 onClick={() => handleQuickSelect('chuyenvien', '123456')}
                 className={`p-2.5 rounded-xl border text-xs transition-all ${
                   username === 'chuyenvien'
-                    ? 'bg-emerald-50/80 border-emerald-400 text-emerald-900 shadow-xs'
+                    ? 'bg-blue-50 border-blue-400 text-blue-900 shadow-xs'
                     : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
                 }`}
               >
                 <div className="font-bold">Chuyên viên</div>
-                <div className="text-[10px] text-slate-500 mt-0.5">Soạn dự thảo AI</div>
+                <div className="text-[10px] text-slate-500 mt-0.5">Xử lý & Soạn dự thảo</div>
               </button>
             </div>
           </div>
