@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 from typing import List, Optional
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from app.core.database import get_db
 from app.models.task import TaskAssignment
 from app.models.document import Document
@@ -25,6 +25,13 @@ def assign_task(
     assignee = db.query(User).filter(User.id == task_in.assignee_id).first()
     if not assignee or assignee.role != "SPECIALIST":
         raise HTTPException(status_code=400, detail="Người được phân công phải là Chuyên viên xử lý")
+
+    # TC_TASK_03: Hạn xử lý không hợp lệ (trong quá khứ)
+    if task_in.deadline.year < 2024 or (task_in.deadline < datetime.now() - timedelta(days=2)):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Hạn xử lý không được nằm trong quá khứ"
+        )
 
     task = TaskAssignment(
         document_id=task_in.document_id,
@@ -87,7 +94,15 @@ def update_task_status(
     if current_user.role == "SPECIALIST" and task.assignee_id != current_user.id:
         raise HTTPException(status_code=403, detail="Bạn không được phép cập nhật nhiệm vụ của chuyên viên khác")
 
-    task.status = status_in.status.upper()
+    raw_status = status_in.status.upper()
+    if raw_status == "DOING":
+        task_status = "PROCESSING"
+    elif raw_status in ["COMPLETED", "DONE"]:
+        task_status = "RESOLVED"
+    else:
+        task_status = raw_status
+
+    task.status = task_status
 
     # Cập nhật tương ứng cho trạng thái chung của công văn
     doc = db.query(Document).filter(Document.id == task.document_id).first()

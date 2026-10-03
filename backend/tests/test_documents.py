@@ -55,3 +55,11 @@ def test_search_and_filter_documents(client, clerk_headers):
     assert res_scope.status_code == 200
     assert len(res_scope.json()) == 1
     assert res_scope.json()[0]["document_number"] == "202/UBND"
+
+def test_create_document_missing_required_fields(client, clerk_headers):
+    """TC_DOC_02: Báo lỗi khi thiếu trường bắt buộc (HTTP 422)."""
+    res = client.post("/api/v1/documents", json={
+        "document_scope": "EXTERNAL"
+    }, headers=clerk_headers)
+    assert res.status_code == 422
+

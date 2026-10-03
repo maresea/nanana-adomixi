@@ -36,3 +36,16 @@ def test_specialist_cannot_access_leader_dashboard(client, specialist_headers):
     response = client.get("/api/v1/statistics/dashboard", headers=specialist_headers)
     assert response.status_code == 403
     assert "bị từ chối" in response.json()["detail"]
+
+def test_specialist_cannot_assign_task(client, specialist_headers):
+    """TC_RBAC_01: Chuyên viên cố tình truy cập chức năng phân công công văn của Lãnh đạo (HTTP 403)."""
+    payload = {
+        "document_id": 1,
+        "assignee_id": 3,
+        "instruction": "Chuyên viên tự phân công trái quyền",
+        "deadline": "2026-10-30T17:00:00"
+    }
+    response = client.post("/api/v1/tasks/assign", json=payload, headers=specialist_headers)
+    assert response.status_code == 403
+    assert "bị từ chối" in response.json()["detail"]
+

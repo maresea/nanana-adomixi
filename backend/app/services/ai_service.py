@@ -262,3 +262,5 @@ class AIService:
         return res
 
 ai_service = AIService()
+
+ai_service = AIService()
