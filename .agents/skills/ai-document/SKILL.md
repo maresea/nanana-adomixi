@@ -72,14 +72,19 @@ Hướng dẫn ngắn gọn 3 bước để khởi động dự án trên máy c
 
 #### 1. Dành cho Văn thư (Role: `CLERK`)
 * **Bước 1: Đăng nhập**: Chọn thẻ đăng nhập nhanh "Văn thư" hoặc nhập `vanthu / 123456`.
-* **Bước 2: Tiếp nhận công văn đến (FR3, FR5)**:
+* **Bước 2: Vào sổ công văn đến hoặc Đăng ký phát hành công văn đi**:
   * Nhấp **"+ Thêm mới văn bản"** trên menu trái.
-  * Chọn loại: **"Công văn đến"**.
+  * **Chọn Chiều luân chuyển**:
+    * **Công văn đến**: Biểu mẫu hiển thị tiêu đề *"Vào sổ công văn đến"*, nhãn trường tương ứng: *"Cơ quan gửi đến"* và *"Đơn vị tiếp nhận"*.
+    * **Công văn đi**: Biểu mẫu tự thích ứng sang tiêu đề *"Đăng ký & Ban hành công văn đi"*, nhãn trường: *"Đơn vị ban hành (Cơ quan mình)"* và *"Nơi nhận (Kính gửi cơ quan bên ngoài)"*.
+  * **Chọn Phạm vi lưu hành**:
+    * **Ngoại bộ (Liên cơ quan)**: Giao dịch với các cơ quan bên ngoài (hiển thị nhãn *"Ngoài cơ quan"*).
+    * **Nội bộ cơ quan**: Nhãn chuyển thành *"Phòng ban gửi"* và *"Phòng ban nhận"*, kèm gợi ý chọn nhanh các đơn vị nội bộ (nhãn *"Lưu hành nội bộ"*).
   * Bấm nút **"Nạp dữ liệu mẫu để thử nghiệm"** (hoặc tự nhập số hiệu, trích yếu, cơ quan gửi, đính kèm tệp PDF).
 * **Bước 3: Sử dụng AI Gợi ý phân loại & Độ khẩn (FR12)**:
   * Nhấp nút **"🤖 AI Phân tích & Gợi ý"**.
   * Quan sát AI tự động đề xuất: Phòng ban xử lý phù hợp và Mức độ ưu tiên (`HOA_TOC` / `THUONG`).
-  * *Lưu ý:* Kiểm tra lại thông tin, chỉnh sửa nếu cần và nhấp **"Lưu công văn"**.
+  * *Lưu ý:* Kiểm tra lại thông tin, chỉnh sửa nếu cần và nhấp **"Vào sổ công văn"** (hoặc *"Đăng ký & Ban hành công văn đi"*).
 * **Bước 4: Quản lý công văn đi & Tra cứu (FR4, FR8)**:
   * Chuyển tab để xem danh sách Công văn đi, sử dụng thanh tìm kiếm đa tiêu chí theo số hiệu hoặc từ khóa trích yếu.
 
@@ -87,12 +92,14 @@ Hướng dẫn ngắn gọn 3 bước để khởi động dự án trên máy c
 * **Bước 1: Giám sát Dashboard điều hành (FR10)**:
   * Đăng nhập tài khoản `lanhdao`.
   * Xem 4 thẻ thống kê: Tổng công văn, Đang xử lý, Quá hạn, và Tỷ lệ văn bản theo đơn vị tiếp nhận.
-* **Bước 2: Xem chi tiết & Sử dụng AI Tóm tắt (FR11)**:
-  * Chọn một công văn có nội dung dài trong bảng danh sách.
-  * Trong màn hình chi tiết, quan sát khung **"AI Tóm tắt nội dung"**.
-  * Đọc nhanh 3-5 ý chính được cô đọng bằng văn phong hành chính súc tích mà không cần đọc hết tài liệu gốc.
+* **Bước 2: Xem chi tiết, Tiến trình vòng đời & AI Tóm tắt**:
+  * Chọn một công văn trong danh sách để mở màn hình chi tiết.
+  * **Quan sát Thanh tiến trình vòng đời thích ứng (Adaptive Lifecycle Stepper)**:
+    * *Với Công văn đến*: Hiển thị chu trình tiếp nhận 4 bước (`1. Tiếp nhận ➔ 2. Phân công ➔ 3. Đang xử lý ➔ 4. Hoàn tất`).
+    * *Với Công văn đi*: Hiển thị chu trình ban hành 4 bước (`1. Soạn dự thảo ➔ 2. Thẩm tra ➔ 3. Lãnh đạo ký ➔ 4. Đã phát hành`).
+  * Quan sát khung **"AI Tóm tắt nội dung"**: Đọc nhanh 3-5 ý chính được cô đọng bằng văn phong hành chính súc tích mà không cần đọc hết tài liệu gốc.
 * **Bước 3: Phân công nhiệm vụ & Đặt hạn xử lý (FR6, FR9)**:
-  * Nhấp **"Phân công xử lý"**.
+  * Với Công văn đến: Nhấp **"Phân công xử lý"** (văn bản đi đã ban hành sẽ ẩn nút phân công).
   * Chọn Chuyên viên phụ trách (ví dụ: `Nguyễn Văn Chuyên Viên`).
   * Chọn **Hạn xử lý (Deadline)** và nhập **Ý kiến chỉ đạo**.
   * Bấm **"Xác nhận phân công"** -> Hệ thống tự động chuyển trạng thái văn bản sang `Đang xử lý (IN_PROGRESS)`.

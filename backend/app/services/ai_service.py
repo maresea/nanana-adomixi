@@ -131,15 +131,58 @@ class AIService:
         return "Kết quả xử lý thành công.", latency
 
     @classmethod
-    def _call_llm(cls, system_prompt: str, user_content: str) -> Tuple[str, int]:
+    def _is_internal_document(cls, text: str, document_scope: Optional[str] = None, is_internal: Optional[bool] = None) -> bool:
+        """Nhận diện công văn nội bộ để kích hoạt chế độ bảo mật AI Local."""
+        if is_internal is True:
+            return True
+        if document_scope and document_scope.upper() == "INTERNAL":
+            return True
+        lower = text.lower()
+        internal_keywords = [
+            "nội bộ", "lưu hành nội bộ", "giữa các phòng ban", "kính gửi ban giám đốc",
+            "kính gửi: ban giám đốc", "tờ trình nội bộ", "báo cáo nội bộ",
+            "phòng công nghệ thông tin", "phòng cntt", "phòng kế hoạch",
+            "phòng tổ chức cán bộ", "văn phòng cơ quan"
+        ]
+        return any(kw in lower for kw in internal_keywords)
+
+    @classmethod
+    def _call_llm(cls, system_prompt: str, user_content: str, is_internal: bool = False) -> Tuple[str, int]:
         start_time = time.time()
         provider = settings.AI_PROVIDER.lower()
 
+        # CHÍNH SÁCH BẢO MẬT DỮ LIỆU NỘI BỘ (Privacy-Aware AI Routing):
+        # Đối với công văn nội bộ, TUYỆT ĐỐI KHÔNG gửi dữ liệu ra Cloud AI bên ngoài (Gemini/OpenAI)
+        # Hệ thống tự động ép chuyển mạch sang On-Premise Local AI (Ollama cục bộ hoặc Local Heuristic Engine)
+        if is_internal:
+            # Thử gọi Ollama Local nếu máy chủ cục bộ đang chạy
+            if provider == "ollama" or (settings.OLLAMA_BASE_URL and provider in ["ollama", "local"]):
+                try:
+                    url = f"{settings.OLLAMA_BASE_URL.rstrip('/')}/api/generate"
+                    payload = {
+                        "model": "qwen2.5:3b",
+                        "prompt": f"{system_prompt}\n\nNỘI DUNG:\n{user_content}",
+                        "stream": False
+                    }
+                    with httpx.Client(timeout=15.0) as client:
+                        resp = client.post(url, json=payload)
+                        if resp.status_code == 200:
+                            data = resp.json()
+                            text = data.get("response", "")
+                            if text.strip():
+                                latency = int((time.time() - start_time) * 1000)
+                                return text.strip(), latency
+                except Exception:
+                    pass
+            # Mặc định xử lý an toàn bằng Local Engine nội bộ (không rời khỏi máy chủ)
+            return cls._mock_response(system_prompt, user_content, start_time)
+
+        # ĐỐI VỚI CÔNG VĂN NGOẠI BỘ (Công khai liên cơ quan):
         # 1. Chế độ Mock thông minh tường minh
         if provider == "mock" or (provider == "gemini" and not settings.GEMINI_API_KEY) or (provider == "openai" and not settings.OPENAI_API_KEY):
             return cls._mock_response(system_prompt, user_content, start_time)
 
-        # 2. Chế độ Gemini API (Có fallback sang Mock nếu gặp lỗi 403, 404, hết hạn ngạch)
+        # 2. Chế độ Gemini API (Có fallback sang Mock nếu gặp sự cố)
         elif provider == "gemini":
             try:
                 url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={settings.GEMINI_API_KEY}"
@@ -157,8 +200,7 @@ class AIService:
                     text = data["candidates"][0]["content"]["parts"][0]["text"]
                     latency = int((time.time() - start_time) * 1000)
                     return text.strip(), latency
-            except Exception as e:
-                # Tự động Fallback sang Mock thông minh để hệ thống không bao giờ bị đứt gãy
+            except Exception:
                 return cls._mock_response(system_prompt, user_content, start_time)
 
         # 3. Chế độ OpenAI API
@@ -181,57 +223,98 @@ class AIService:
                     text = data["choices"][0]["message"]["content"]
                     latency = int((time.time() - start_time) * 1000)
                     return text.strip(), latency
-            except Exception as e:
+            except Exception:
+                return cls._mock_response(system_prompt, user_content, start_time)
+
+        # 4. Chế độ Ollama (Local LLM)
+        elif provider == "ollama":
+            try:
+                url = f"{settings.OLLAMA_BASE_URL.rstrip('/')}/api/generate"
+                payload = {
+                    "model": "qwen2.5:3b",
+                    "prompt": f"{system_prompt}\n\nNỘI DUNG:\n{user_content}",
+                    "stream": False
+                }
+                with httpx.Client(timeout=30.0) as client:
+                    resp = client.post(url, json=payload)
+                    resp.raise_for_status()
+                    data = resp.json()
+                    text = data.get("response", "")
+                    latency = int((time.time() - start_time) * 1000)
+                    return text.strip(), latency
+            except Exception:
                 return cls._mock_response(system_prompt, user_content, start_time)
 
         return cls._mock_response(system_prompt, user_content, start_time)
 
-    def extract_metadata(self, document_text: str, db: Optional[Session] = None) -> MetadataDTO:
+    def extract_metadata(
+        self,
+        document_text: str,
+        db: Optional[Session] = None,
+        document_scope: Optional[str] = None,
+        is_internal: Optional[bool] = None
+    ) -> MetadataDTO:
+        internal_flag = self._is_internal_document(document_text, document_scope, is_internal)
         system_prompt = (
             "Bạn là trợ lý trích xuất văn bản hành chính Việt Nam. "
             "Chỉ trích xuất dựa trên nội dung được cung cấp, không bịa thông tin. "
             "Trả về duy nhất JSON hợp lệ (không markdown block) gồm: "
             "document_number, issued_date (YYYY-MM-DD), sender_org, title, confidence_score."
         )
-        raw_res, latency = self._call_llm(system_prompt, document_text)
+        raw_res, latency = self._call_llm(system_prompt, document_text, is_internal=internal_flag)
         
         # Làm sạch chuỗi JSON nếu có markdown ```json
         clean_res = re.sub(r"^```json\s*|\s*```$", "", raw_res.strip(), flags=re.MULTILINE)
         try:
             dto = MetadataDTO.model_validate_json(clean_res)
         except Exception:
-            # Heuristic regex nếu parse JSON chưa chuẩn
             num_match = re.search(r"Số:?\s*([0-9]+[a-zA-Z0-9\/\-_]+)", document_text)
             doc_num = num_match.group(1) if num_match else None
             dto = MetadataDTO(document_number=doc_num, title=document_text[:100].strip(), confidence_score=0.85)
 
         if db:
-            log = AITaskLog(task_type="EXTRACT", prompt_input=document_text[:500], raw_response=raw_res, latency_ms=latency)
+            task_type = "EXTRACT_INTERNAL_LOCAL" if internal_flag else "EXTRACT"
+            log = AITaskLog(task_type=task_type, prompt_input=document_text[:500], raw_response=raw_res, latency_ms=latency)
             db.add(log)
             db.commit()
 
         return dto
 
-    def summarize_text(self, document_text: str, db: Optional[Session] = None) -> str:
+    def summarize_text(
+        self,
+        document_text: str,
+        db: Optional[Session] = None,
+        document_scope: Optional[str] = None,
+        is_internal: Optional[bool] = None
+    ) -> str:
+        internal_flag = self._is_internal_document(document_text, document_scope, is_internal)
         system_prompt = (
             "Bạn là trợ lý xử lý công văn và văn bản hành chính. "
             "Hãy tóm tắt văn bản thành 3-5 ý chính rõ ràng (mục đích, nội dung chính, yêu cầu, thời hạn). "
             "Giữ đúng văn phong hành chính, không tự suy đoán thông tin ngoài văn bản."
         )
-        res, latency = self._call_llm(system_prompt, document_text)
+        res, latency = self._call_llm(system_prompt, document_text, is_internal=internal_flag)
         if db:
-            log = AITaskLog(task_type="SUMMARIZE", prompt_input=document_text[:500], raw_response=res, latency_ms=latency)
+            task_type = "SUMMARIZE_INTERNAL_LOCAL" if internal_flag else "SUMMARIZE"
+            log = AITaskLog(task_type=task_type, prompt_input=document_text[:500], raw_response=res, latency_ms=latency)
             db.add(log)
             db.commit()
         return res
 
-    def suggest_classification(self, document_text: str, db: Optional[Session] = None) -> ClassificationDTO:
+    def suggest_classification(
+        self,
+        document_text: str,
+        db: Optional[Session] = None,
+        document_scope: Optional[str] = None,
+        is_internal: Optional[bool] = None
+    ) -> ClassificationDTO:
+        internal_flag = self._is_internal_document(document_text, document_scope, is_internal)
         system_prompt = (
             "Phân tích nội dung công văn, phân loại và đề xuất thể loại văn bản (category) "
             "cùng mức độ ưu tiên (urgency: NORMAL, URGENT, VERY_URGENT). "
             "Trả về duy nhất JSON hợp lệ gồm: category, urgency, reasoning."
         )
-        raw_res, latency = self._call_llm(system_prompt, document_text)
+        raw_res, latency = self._call_llm(system_prompt, document_text, is_internal=internal_flag)
         clean_res = re.sub(r"^```json\s*|\s*```$", "", raw_res.strip(), flags=re.MULTILINE)
         try:
             dto = ClassificationDTO.model_validate_json(clean_res)
@@ -241,12 +324,21 @@ class AIService:
             dto = ClassificationDTO(category="Chỉ đạo điều hành", urgency=urgency, reasoning="Tự động phân loại qua bộ lọc dự phòng.")
 
         if db:
-            log = AITaskLog(task_type="CLASSIFY", prompt_input=document_text[:500], raw_response=raw_res, latency_ms=latency)
+            task_type = "CLASSIFY_INTERNAL_LOCAL" if internal_flag else "CLASSIFY"
+            log = AITaskLog(task_type=task_type, prompt_input=document_text[:500], raw_response=raw_res, latency_ms=latency)
             db.add(log)
             db.commit()
         return dto
 
-    def generate_draft(self, original_text: str, instruction: str, db: Optional[Session] = None) -> str:
+    def generate_draft(
+        self,
+        original_text: str,
+        instruction: str,
+        db: Optional[Session] = None,
+        document_scope: Optional[str] = None,
+        is_internal: Optional[bool] = None
+    ) -> str:
+        internal_flag = self._is_internal_document(f"{original_text} {instruction}", document_scope, is_internal)
         system_prompt = (
             "Bạn là trợ lý soạn thảo công văn hành chính nhà nước. "
             "Dựa vào văn bản gốc và ý kiến chỉ đạo của Lãnh đạo, hãy soạn thảo dự thảo công văn phản hồi "
@@ -254,13 +346,12 @@ class AIService:
             "Tuyệt đối không tự bịa số liệu hay thông tin không có trong chỉ đạo."
         )
         user_content = f"VĂN BẢN GỐC:\n{original_text}\n\nÝ KIẾN CHỈ ĐẠO CỦA LÃNH ĐẠO:\n{instruction}"
-        res, latency = self._call_llm(system_prompt, user_content)
+        res, latency = self._call_llm(system_prompt, user_content, is_internal=internal_flag)
         if db:
-            log = AITaskLog(task_type="DRAFT", prompt_input=user_content[:500], raw_response=res, latency_ms=latency)
+            task_type = "DRAFT_INTERNAL_LOCAL" if internal_flag else "DRAFT"
+            log = AITaskLog(task_type=task_type, prompt_input=user_content[:500], raw_response=res, latency_ms=latency)
             db.add(log)
             db.commit()
         return res
-
-ai_service = AIService()
 
 ai_service = AIService()

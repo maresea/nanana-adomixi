@@ -118,7 +118,7 @@ Ma trận ở tầng Yêu cầu chỉ liên kết giữa **Mục tiêu nghiệp 
 | Mã FR | Tên chức năng | NFR áp dụng | Vai trò chịu trách nhiệm | Tiêu chí nghiệm thu cốt lõi |
 |:---:|---|:---:|:---:|---|
 | **FR1** | Đăng nhập & phân quyền | NFR1, NFR4 | Toàn hệ thống | Đăng nhập đúng vai trò (Văn thư/Lãnh đạo/Chuyên viên); kiểm soát quyền chặt chẽ. |
-| **FR2** | Quản lý công văn | NFR1, NFR6 | Văn thư | Tiếp nhận, tạo lập, lưu trữ công văn đến/đi và tệp đính kèm ở mức demo. |
+| **FR2** | Quản lý công văn | NFR1, NFR6 | Văn thư | Tiếp nhận, tạo lập, lưu trữ và luân chuyển công văn đến/đi, nội bộ/ngoại bộ với quy trình và biểu mẫu thích ứng. |
 | **FR3** | Phân công & theo dõi xử lý | NFR1, NFR4 | Lãnh đạo | Phân công đúng người, định rõ hạn xử lý, theo dõi được tiến độ của văn bản. |
 | **FR4** | Cập nhật trạng thái quản lý | NFR1, NFR4 | Chuyên viên | Cập nhật tiến độ giải quyết công việc và trình được công văn phản hồi. |
 | **FR5** | Tra cứu văn bản | NFR1, NFR4 | Chung | Tìm kiếm chính xác theo số ký hiệu, ngày, đơn vị, trạng thái trong phạm vi được phép xem. |

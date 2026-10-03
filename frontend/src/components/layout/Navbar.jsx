@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { ROLES } from '../../utils/constants';
-import { Bell, LogOut, FileText, AlertTriangle, Clock, ChevronDown, CheckCircle, ExternalLink } from 'lucide-react';
+import { Bell, LogOut, FileText, AlertTriangle, Clock, ChevronDown, CheckCircle, ExternalLink, Menu } from 'lucide-react';
 import apiClient from '../../services/apiClient';
 import { Link } from 'react-router-dom';
 
-export const Navbar = () => {
+export const Navbar = ({ onToggleSidebar }) => {
   const { user, logout } = useAuth();
   const [alerts, setAlerts] = useState({ overdue_tasks: [], due_soon_tasks: [], overdue_count: 0, due_soon_count: 0 });
   const [showNotifications, setShowNotifications] = useState(false);
@@ -34,24 +34,38 @@ export const Navbar = () => {
   const totalWarnings = (alerts.overdue_count || 0) + (alerts.due_soon_count || 0);
 
   return (
-    <header className="h-16 bg-white/90 backdrop-blur-md border-b border-slate-200/80 px-6 flex items-center justify-between sticky top-0 z-40 shadow-xs transition-all">
-      {/* Brand logo & title */}
-      <Link to="/" className="flex items-center space-x-3 group">
-        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary-800 to-primary-950 flex items-center justify-center text-white shadow-md shadow-primary-950/10 group-hover:scale-105 transition-transform">
-          <FileText className="w-5 h-5 text-primary-200" />
-        </div>
-        <div>
-          <div className="flex items-center space-x-2">
-            <h1 className="text-sm font-bold text-slate-800 tracking-tight group-hover:text-primary-700 transition-colors">
-              HỆ THỐNG QUẢN LÝ CÔNG VĂN
-            </h1>
-            <span className="hidden sm:inline-block text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200">
-              Văn phòng điện tử
-            </span>
+    <header className="h-16 bg-white/90 backdrop-blur-md border-b border-slate-200/80 px-4 sm:px-6 flex items-center justify-between sticky top-0 z-40 shadow-xs transition-all">
+      <div className="flex items-center space-x-2 sm:space-x-3">
+        {/* Mobile Hamburger Menu Toggle */}
+        <button
+          type="button"
+          onClick={onToggleSidebar}
+          className="p-2 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-100 md:hidden transition-colors"
+          title="Mở menu điều hướng"
+        >
+          <Menu className="w-5 h-5" />
+        </button>
+
+        {/* Brand logo & title */}
+        <Link to="/" className="flex items-center space-x-2 sm:space-x-3 group">
+          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-primary-800 to-primary-950 flex items-center justify-center text-white shadow-md shadow-primary-950/10 group-hover:scale-105 transition-transform flex-shrink-0">
+            <FileText className="w-4 h-4 sm:w-5 sm:h-5 text-primary-200" />
           </div>
-          <p className="text-[11px] text-slate-500 font-medium">Cơ quan Hành chính & Văn bản Nội bộ</p>
-        </div>
-      </Link>
+          <div>
+            <div className="flex items-center space-x-2">
+              <h1 className="text-xs sm:text-sm font-bold text-slate-800 tracking-tight group-hover:text-primary-700 transition-colors truncate max-w-[170px] sm:max-w-none">
+                HỆ THỐNG QUẢN LÝ CÔNG VĂN
+              </h1>
+              <span className="hidden lg:inline-block text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200">
+                Văn phòng điện tử
+              </span>
+            </div>
+            <p className="text-[10px] sm:text-[11px] text-slate-500 font-medium truncate max-w-[170px] sm:max-w-none">
+              Cơ quan Hành chính & Văn bản Nội bộ
+            </p>
+          </div>
+        </Link>
+      </div>
 
       {/* Right side: Interactive Notifications & User profile */}
       <div className="flex items-center space-x-3 sm:space-x-4">

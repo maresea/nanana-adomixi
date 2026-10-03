@@ -18,7 +18,8 @@ import {
   Copy,
   Check,
   ArrowRight,
-  Filter
+  Filter,
+  ChevronDown
 } from 'lucide-react';
 
 export const TasksPage = () => {
@@ -47,6 +48,12 @@ export const TasksPage = () => {
   const [draftContent, setDraftContent] = useState('');
   const [generatingAiDraft, setGeneratingAiDraft] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [toast, setToast] = useState(null); // { type: 'success' | 'error', text: string }
+
+  const notify = (type, text) => {
+    setToast({ type, text });
+    setTimeout(() => setToast(null), 4000);
+  };
 
   const fetchData = async () => {
     setLoading(true);
@@ -89,11 +96,11 @@ export const TasksPage = () => {
         ...assignForm,
         deadline: deadlineFormatted
       });
-      alert("Phân công nhiệm vụ xử lý văn bản thành công!");
+      notify('success', "Phân công nhiệm vụ xử lý văn bản thành công!");
       setShowAssignModal(false);
       fetchData();
     } catch (err) {
-      alert("Lỗi phân công: " + (err.response?.data?.detail || err.message));
+      notify('error', "Lỗi phân công: " + (err.response?.data?.detail || err.message));
     }
   };
 
@@ -101,9 +108,10 @@ export const TasksPage = () => {
   const handleUpdateStatus = async (taskId, newStatus) => {
     try {
       await apiClient.patch(`/tasks/${taskId}/status`, { status: newStatus });
+      notify('success', "Cập nhật tiến độ công việc thành công!");
       fetchData();
     } catch (err) {
-      alert("Lỗi cập nhật: " + (err.response?.data?.detail || err.message));
+      notify('error', "Lỗi cập nhật: " + (err.response?.data?.detail || err.message));
     }
   };
 
@@ -111,17 +119,23 @@ export const TasksPage = () => {
   const handleGenerateAIDraft = async (task) => {
     setGeneratingAiDraft(true);
     try {
+      const isInternal = task.document?.document_scope === 'INTERNAL' || Boolean(task.document?.is_internal);
       const docContext = task.document 
         ? `Số hiệu: ${task.document.document_number}\nTrích yếu: ${task.document.title}`
         : (task.instruction || "Công văn yêu cầu phối hợp giải quyết theo chức năng nhiệm vụ.");
 
       const res = await apiClient.post('/ai/generate-draft', {
         document_text: docContext,
-        instruction: task.instruction || "Đồng ý phối hợp và báo cáo tiến độ theo quy định."
+        instruction: task.instruction || "Đồng ý phối hợp và báo cáo tiến độ theo quy định.",
+        document_scope: task.document?.document_scope || (isInternal ? 'INTERNAL' : 'EXTERNAL'),
+        is_internal: isInternal
       });
       setDraftContent(res.data.draft_content);
+      notify('success', isInternal 
+        ? "Local AI On-Premise đã hoàn tất sinh dự thảo bảo mật nội bộ!" 
+        : "AI đã hoàn tất sinh dự thảo công văn phản hồi!");
     } catch (err) {
-      alert("Lỗi khi sinh dự thảo: " + (err.response?.data?.detail || err.message));
+      notify('error', "Lỗi khi sinh dự thảo: " + (err.response?.data?.detail || err.message));
     } finally {
       setGeneratingAiDraft(false);
     }
@@ -137,7 +151,7 @@ export const TasksPage = () => {
   // Nộp dự thảo (FR4, FR10)
   const handleSubmitDraft = async (taskId) => {
     if (!draftContent.trim()) {
-      alert("Nội dung dự thảo không được để trống.");
+      notify('error', "Nội dung dự thảo không được để trống.");
       return;
     }
     try {
@@ -145,12 +159,12 @@ export const TasksPage = () => {
         content: draftContent,
         is_ai_generated: true
       });
-      alert("Đã trình dự thảo công văn phản hồi lên Lãnh đạo phê duyệt!");
+      notify('success', "Đã trình dự thảo công văn phản hồi lên Lãnh đạo phê duyệt!");
       setActiveTaskForDraft(null);
       setDraftContent('');
       fetchData();
     } catch (err) {
-      alert("Lỗi nộp dự thảo: " + (err.response?.data?.detail || err.message));
+      notify('error', "Lỗi nộp dự thảo: " + (err.response?.data?.detail || err.message));
     }
   };
 
@@ -164,10 +178,10 @@ export const TasksPage = () => {
         is_approved: isApproved,
         approval_note: note
       });
-      alert(isApproved ? "Đã phê duyệt ban hành công văn phản hồi!" : "Đã trả về dự thảo cho chuyên viên.");
+      notify('success', isApproved ? "Đã phê duyệt ban hành công văn phản hồi!" : "Đã trả về dự thảo cho chuyên viên.");
       fetchData();
     } catch (err) {
-      alert("Lỗi phê duyệt: " + (err.response?.data?.detail || err.message));
+      notify('error', "Lỗi phê duyệt: " + (err.response?.data?.detail || err.message));
     }
   };
 
@@ -205,6 +219,32 @@ export const TasksPage = () => {
           </button>
         )}
       </div>
+
+      {/* Toast Feedback Notification Banner */}
+      {toast && (
+        <div
+          className={`p-3.5 rounded-xl border text-xs font-semibold flex items-center justify-between shadow-xs transition-all ${
+            toast.type === 'success'
+              ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+              : 'bg-rose-50 text-rose-800 border-rose-200'
+          }`}
+        >
+          <div className="flex items-center space-x-2">
+            {toast.type === 'success' ? (
+              <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+            ) : (
+              <AlertTriangle className="w-4 h-4 text-rose-600 flex-shrink-0" />
+            )}
+            <span>{toast.text}</span>
+          </div>
+          <button
+            onClick={() => setToast(null)}
+            className="text-slate-400 hover:text-slate-600 text-xs px-1"
+          >
+            ✕
+          </button>
+        </div>
+      )}
 
       {/* Cảnh báo hạn xử lý */}
       {(alerts.overdue_tasks.length > 0 || alerts.due_soon_tasks.length > 0) && (
@@ -445,36 +485,42 @@ export const TasksPage = () => {
               <div className="p-6 overflow-y-auto space-y-4 flex-1 text-sm">
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">Chọn Công văn cần xử lý</label>
-                  <select
-                    required
-                    value={assignForm.document_id}
-                    onChange={(e) => setAssignForm({ ...assignForm, document_id: e.target.value })}
-                    className="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl text-sm bg-white focus:ring-2 focus:ring-primary-600 focus:outline-none"
-                  >
-                    <option value="">-- Chọn công văn --</option>
-                    {documents.map((d) => (
-                      <option key={d.id} value={d.id}>
-                        {d.document_number} - {d.title.substring(0, 55)}...
-                      </option>
-                    ))}
-                  </select>
+                  <div className="relative">
+                    <select
+                      required
+                      value={assignForm.document_id}
+                      onChange={(e) => setAssignForm({ ...assignForm, document_id: e.target.value })}
+                      className="w-full px-3.5 py-2.5 pr-9 border border-slate-300 rounded-xl text-sm bg-white focus:ring-2 focus:ring-primary-600 focus:outline-none appearance-none cursor-pointer"
+                    >
+                      <option value="">-- Chọn công văn --</option>
+                      {documents.map((d) => (
+                        <option key={d.id} value={d.id}>
+                          {d.document_number} - {d.title.substring(0, 55)}...
+                        </option>
+                      ))}
+                    </select>
+                    <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  </div>
                 </div>
 
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">Giao Chuyên viên chủ trì</label>
-                  <select
-                    required
-                    value={assignForm.assignee_id}
-                    onChange={(e) => setAssignForm({ ...assignForm, assignee_id: e.target.value })}
-                    className="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl text-sm bg-white focus:ring-2 focus:ring-primary-600 focus:outline-none"
-                  >
-                    <option value="">-- Chọn cán bộ thụ lý --</option>
-                    {specialists.map((s) => (
-                      <option key={s.id} value={s.id}>
-                        {s.full_name} ({s.username})
-                      </option>
-                    ))}
-                  </select>
+                  <div className="relative">
+                    <select
+                      required
+                      value={assignForm.assignee_id}
+                      onChange={(e) => setAssignForm({ ...assignForm, assignee_id: e.target.value })}
+                      className="w-full px-3.5 py-2.5 pr-9 border border-slate-300 rounded-xl text-sm bg-white focus:ring-2 focus:ring-primary-600 focus:outline-none appearance-none cursor-pointer"
+                    >
+                      <option value="">-- Chọn cán bộ thụ lý --</option>
+                      {specialists.map((s) => (
+                        <option key={s.id} value={s.id}>
+                          {s.full_name} ({s.username})
+                        </option>
+                      ))}
+                    </select>
+                    <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  </div>
                 </div>
 
                 <div>
@@ -530,9 +576,16 @@ export const TasksPage = () => {
                   <FileCheck className="w-4 h-4 text-white" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold text-slate-900">
-                    Soạn thảo Dự thảo Văn bản Phản hồi
-                  </h3>
+                  <div className="flex items-center space-x-2">
+                    <h3 className="text-sm font-bold text-slate-900">
+                      Soạn thảo Dự thảo Văn bản Phản hồi
+                    </h3>
+                    {activeTaskForDraft.document?.document_scope === 'INTERNAL' && (
+                      <span className="text-[10px] px-2 py-0.5 rounded font-semibold bg-emerald-100 text-emerald-800 border border-emerald-300">
+                        🔒 Local AI On-Premise
+                      </span>
+                    )}
+                  </div>
                   <p className="text-[11px] text-slate-500">Khung văn bản phúc đáp theo thể thức hành chính (Nghị định 30/2020/NĐ-CP)</p>
                 </div>
               </div>
@@ -556,7 +609,13 @@ export const TasksPage = () => {
                   disabled={generatingAiDraft}
                   className="px-3.5 py-1.5 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-semibold flex items-center space-x-1.5 disabled:opacity-50 shadow-xs transition-colors"
                 >
-                  <span>{generatingAiDraft ? 'Đang soạn thảo...' : 'Tự động tạo khung dự thảo'}</span>
+                  <span>
+                    {generatingAiDraft
+                      ? 'Đang soạn thảo...'
+                      : activeTaskForDraft.document?.document_scope === 'INTERNAL'
+                        ? 'Local AI: Tạo khung dự thảo'
+                        : 'Tự động tạo khung dự thảo'}
+                  </span>
                 </button>
               </div>
             </div>

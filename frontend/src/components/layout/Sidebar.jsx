@@ -10,7 +10,7 @@ import {
   Building2
 } from 'lucide-react';
 
-export const Sidebar = () => {
+export const Sidebar = ({ isOpen, onClose }) => {
   const { user } = useAuth();
   const role = user?.role;
 
@@ -53,10 +53,21 @@ export const Sidebar = () => {
     SPECIALIST: 'Chuyên viên thụ lý'
   };
 
-  return (
-    <aside className="w-64 bg-slate-900 text-slate-300 flex flex-col min-h-[calc(100vh-4rem)] border-r border-slate-800 shadow-inner">
+  const sidebarContent = (
+    <div className="flex flex-col h-full">
+      {/* Mobile close button */}
+      <div className="p-4 border-b border-slate-800 flex items-center justify-between md:hidden">
+        <span className="text-xs font-bold text-slate-300 uppercase tracking-wider">Danh mục chức năng</span>
+        <button
+          onClick={onClose}
+          className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 text-sm font-bold"
+        >
+          ✕
+        </button>
+      </div>
+
       {/* Navigation menu */}
-      <div className="p-4 flex-1 space-y-1.5">
+      <div className="p-4 flex-1 space-y-1.5 overflow-y-auto">
         <div className="px-3 pt-2 pb-2 text-[11px] font-bold uppercase tracking-wider text-slate-400 flex items-center justify-between">
           <span>Quy trình nghiệp vụ</span>
           <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
@@ -68,6 +79,7 @@ export const Sidebar = () => {
             <NavLink
               key={item.to}
               to={item.to}
+              onClick={() => onClose && onClose()}
               className={({ isActive }) =>
                 `group flex items-center justify-between px-3.5 py-3 rounded-xl text-xs font-semibold transition-all relative ${
                   isActive
@@ -109,6 +121,28 @@ export const Sidebar = () => {
           </div>
         </div>
       </div>
-    </aside>
+    </div>
+  );
+
+  return (
+    <>
+      {/* Desktop Sidebar */}
+      <aside className="hidden md:flex w-64 bg-slate-900 text-slate-300 flex-col min-h-[calc(100vh-4rem)] border-r border-slate-800 shadow-inner flex-shrink-0">
+        {sidebarContent}
+      </aside>
+
+      {/* Mobile Drawer Backdrop & Panel */}
+      {isOpen && (
+        <div className="fixed inset-0 z-50 md:hidden">
+          <div
+            className="fixed inset-0 bg-black/60 backdrop-blur-xs transition-opacity"
+            onClick={onClose}
+          />
+          <aside className="fixed inset-y-0 left-0 w-72 bg-slate-900 text-slate-300 flex flex-col shadow-2xl z-10 border-r border-slate-800 animate-in slide-in-from-left duration-200">
+            {sidebarContent}
+          </aside>
+        </div>
+      )}
+    </>
   );
 };

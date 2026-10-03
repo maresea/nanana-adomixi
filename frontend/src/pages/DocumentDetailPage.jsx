@@ -80,20 +80,35 @@ export const DocumentDetailPage = () => {
     );
   }
 
+  const isOutgoing = doc.document_type === 'OUTGOING';
+  const isInternal = doc.document_scope === 'INTERNAL';
+
   const typeInfo = DOCUMENT_TYPES[doc.document_type] || { label: doc.document_type };
   const urgencyInfo = URGENCIES[doc.urgency] || { label: doc.urgency, badge: '' };
   const statusInfo = DOCUMENT_STATUSES[doc.status] || { label: doc.status, badge: '' };
 
   const fullText = doc.attachments?.[0]?.extracted_text || doc.title;
 
-  const steps = [
-    { key: 'RECEIVED', label: 'Tiếp nhận' },
-    { key: 'ASSIGNED', label: 'Phân công' },
-    { key: 'IN_PROGRESS', label: 'Đang xử lý' },
-    { key: 'COMPLETED', label: 'Hoàn tất' }
+  // Quy chuẩn 5.5: Adaptive Stepper Timeline
+  const incomingSteps = [
+    { key: 'RECEIVED', label: '1. Tiếp nhận' },
+    { key: 'ASSIGNED', label: '2. Phân công' },
+    { key: 'IN_PROGRESS', label: '3. Đang xử lý' },
+    { key: 'COMPLETED', label: '4. Hoàn tất' }
   ];
 
-  const currentStepIdx = steps.findIndex(s => s.key === doc.status);
+  const outgoingSteps = [
+    { key: 'DRAFT', label: '1. Soạn dự thảo' },
+    { key: 'REVIEWING', label: '2. Thẩm tra' },
+    { key: 'APPROVED', label: '3. Lãnh đạo ký' },
+    { key: 'PUBLISHED', label: '4. Đã phát hành' }
+  ];
+
+  const steps = isOutgoing ? outgoingSteps : incomingSteps;
+
+  const currentStepIdx = isOutgoing
+    ? (doc.status === 'PUBLISHED' ? 3 : (doc.status === 'APPROVED' ? 2 : 1))
+    : steps.findIndex(s => s.key === doc.status);
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
@@ -107,7 +122,8 @@ export const DocumentDetailPage = () => {
           <span>Quay lại sổ công văn</span>
         </Link>
 
-        {user?.role === 'LEADER' && doc.status === 'RECEIVED' && (
+        {/* Nút hành động thích ứng theo loại công văn */}
+        {!isOutgoing && user?.role === 'LEADER' && doc.status === 'RECEIVED' && (
           <Link
             to={`/tasks?doc_id=${doc.id}`}
             className="inline-flex items-center space-x-2 px-4 py-2.5 bg-primary-700 hover:bg-primary-800 text-white rounded-xl text-xs font-bold shadow-xs transition-all"
@@ -116,13 +132,22 @@ export const DocumentDetailPage = () => {
             <span>Phân công xử lý công văn này</span>
           </Link>
         )}
+
+        {isOutgoing && (
+          <div className="inline-flex items-center space-x-1.5 px-3 py-1.5 bg-slate-100 text-slate-700 border border-slate-200 rounded-xl text-xs font-medium shadow-2xs">
+            <CheckCircle2 className="w-3.5 h-3.5 text-slate-500" />
+            <span>Văn bản đã ban hành</span>
+          </div>
+        )}
       </div>
 
-      {/* Tiến trình xử lý (Lifecycle Progress Bar) */}
+      {/* Tiến trình xử lý thích ứng */}
       <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs">
-        <div className="flex items-center justify-between mb-3">
-          <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Tiến trình Xử lý Văn bản</span>
-          <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${statusInfo.badge}`}>
+        <div className="flex items-center justify-between mb-4 border-b border-slate-100 pb-3">
+          <span className="text-xs font-bold text-slate-800 uppercase tracking-wider">
+            {isOutgoing ? 'Tiến trình Phát hành Văn bản Đi' : 'Tiến trình Xử lý Văn bản Đến'}
+          </span>
+          <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium border ${statusInfo.badge}`}>
             {statusInfo.label}
           </span>
         </div>
@@ -141,7 +166,7 @@ export const DocumentDetailPage = () => {
                 }`}>
                   {isPassed ? <CheckCircle2 className="w-4 h-4" /> : idx + 1}
                 </div>
-                <span className={`text-[11px] mt-1.5 font-semibold ${isCurrent ? 'text-primary-800 font-bold' : 'text-slate-500'}`}>
+                <span className={`text-[11px] mt-1.5 font-medium ${isCurrent ? 'text-primary-800 font-bold' : 'text-slate-500'}`}>
                   {step.label}
                 </span>
               </div>
@@ -152,14 +177,17 @@ export const DocumentDetailPage = () => {
 
       {/* Main Document Details Card */}
       <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
-        {/* Header Quốc hiệu */}
+        {/* Header Thông tin & Phân loại văn bản */}
         <div className="p-6 border-b border-slate-100 bg-gradient-to-b from-slate-50/60 to-white">
           <div className="flex flex-wrap items-center gap-2 mb-3">
-            <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold border ${urgencyInfo.badge}`}>
-              Độ khẩn: {urgencyInfo.label}
+            <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium border ${typeInfo.badge}`}>
+              {typeInfo.label}
             </span>
-            <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-700 border border-slate-200">
-              {typeInfo.label} ({doc.document_scope === 'INTERNAL' ? 'Nội bộ' : 'Ngoài cơ quan'})
+            <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-700 border border-slate-200">
+              {isInternal ? 'Lưu hành nội bộ' : 'Ngoài cơ quan'}
+            </span>
+            <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium border ${urgencyInfo.badge}`}>
+              Độ khẩn: {urgencyInfo.label}
             </span>
           </div>
 
@@ -171,10 +199,12 @@ export const DocumentDetailPage = () => {
           </div>
         </div>
 
-        {/* Metadata Grid */}
+        {/* Dynamic Metadata Grid thích ứng theo loại công văn */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-6 bg-slate-50/50 text-xs border-b border-slate-100">
           <div>
-            <span className="text-slate-400 block mb-0.5 font-medium">Ngày ban hành</span>
+            <span className="text-slate-400 block mb-0.5 font-medium">
+              {isOutgoing ? 'Ngày phát hành' : 'Ngày ban hành'}
+            </span>
             <span className="font-bold text-slate-800">{doc.issued_date}</span>
           </div>
           <div>
@@ -182,11 +212,15 @@ export const DocumentDetailPage = () => {
             <span className="font-bold text-slate-800">{doc.category || 'Công văn'}</span>
           </div>
           <div>
-            <span className="text-slate-400 block mb-0.5 font-medium">Cơ quan ban hành / gửi</span>
+            <span className="text-slate-400 block mb-0.5 font-medium">
+              {isOutgoing ? 'Đơn vị ban hành (Cơ quan mình)' : 'Cơ quan gửi đến'}
+            </span>
             <span className="font-bold text-slate-800">{doc.sender_org}</span>
           </div>
           <div>
-            <span className="text-slate-400 block mb-0.5 font-medium">Đơn vị nhận</span>
+            <span className="text-slate-400 block mb-0.5 font-medium">
+              {isOutgoing ? 'Nơi nhận (Kính gửi)' : 'Đơn vị tiếp nhận'}
+            </span>
             <span className="font-bold text-slate-800">{doc.recipient_org}</span>
           </div>
         </div>
@@ -197,6 +231,8 @@ export const DocumentDetailPage = () => {
             documentId={doc.id}
             initialSummary={doc.ai_summary}
             fullText={fullText}
+            documentScope={doc.document_scope}
+            isInternal={isInternal}
             onSummaryUpdated={(newSummary) => setDoc({ ...doc, ai_summary: newSummary })}
           />
         </div>

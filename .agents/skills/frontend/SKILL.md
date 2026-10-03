@@ -132,6 +132,27 @@ frontend/
 ### 5.4. Quyền Kiểm soát Thuộc về Con người (Human Override)
 - Tuyệt đối không disable các trường nhập liệu sau khi AI điền. Người dùng luôn có quyền gõ đè, xóa hoặc sửa lại bất kỳ thông tin nào do AI đưa ra.
 
+### 5.5. Quy chuẩn Hiển thị Phân biệt Công văn Đến / Đi và Nội bộ / Ngoại bộ (Adaptive Lifecycle UX)
+Giao diện chi tiết và biểu mẫu tiếp nhận văn bản bắt buộc phải tự thích ứng theo 2 chiều nghiệp vụ (loại và phạm vi) để phản ánh trung thực thực tế hành chính:
+
+1. **Tiến trình xử lý thích ứng (Adaptive Stepper Timeline):**
+   - **Công văn đến (`INCOMING`):** Thể hiện quy trình tiếp nhận & giải quyết công việc:
+     $$\text{1. Tiếp nhận (Văn thư)} \longrightarrow \text{2. Phân công (Lãnh đạo)} \longrightarrow \text{3. Đang xử lý (Chuyên viên)} \longrightarrow \text{4. Hoàn tất báo cáo}$$
+     - Cho phép Lãnh đạo thực hiện hành động: *"Phân công xử lý"* cho Chuyên viên kèm hạn chót.
+   - **Công văn đi (`OUTGOING`):** Thể hiện quy trình soạn thảo & phát hành ra bên ngoài:
+     $$\text{1. Soạn dự thảo} \longrightarrow \text{2. Thẩm tra} \longrightarrow \text{3. Lãnh đạo ký duyệt} \longrightarrow \text{4. Đã phát hành (Gửi đi)}$$
+     - **Tuyệt đối ẩn nút Phân công xử lý** (văn bản đi không phân công giải quyết nội bộ nữa). Thay bằng nút *"Tải tệp phát hành"*, *"In phiếu gửi"* hoặc *"Xem công văn đến gốc liên quan"*.
+
+2. **Hệ thống nhãn thông tin linh hoạt (Dynamic Field Labels):**
+   - **Công văn đến:** Nhãn hiển thị là **"Cơ quan gửi đến"** (Sender Org) và **"Đơn vị tiếp nhận"** (Recipient Org).
+   - **Công văn đi:** Nhãn hiển thị là **"Đơn vị ban hành"** (Issuing Org - Cơ quan ta) và **"Nơi nhận (Kính gửi)"** (Recipient Org).
+   - **Phạm vi Nội bộ (`INTERNAL`):** Các bên gửi/nhận phải thể hiện rõ danh xưng các **Phòng/Ban nội bộ** trong cơ quan (Văn phòng, Phòng Kế hoạch - Tài chính, Phòng CNTT, v.v.), không nhầm lẫn với các pháp nhân bên ngoài (`EXTERNAL` như UBND Tỉnh, Sở GD&ĐT).
+
+3. **Bộ nhận diện trực quan chuẩn mực hành chính (Visual Badges & Color Tokens):**
+   - **Đồng bộ với hệ thống Token chung:** Sử dụng các nhãn thanh lịch, viền mảnh đồng nhất (`border border-slate-200`), tránh lạm dụng emoji sặc sỡ hoặc các tone màu tím/cam rời rạc làm lệch văn phong hành chính.
+   - **Thẻ phân loại văn bản:** Hiển thị dạng pill tag gọn gàng `bg-primary-50 text-primary-700 border-primary-200` cho *"Công văn đến"* và `bg-slate-100 text-slate-700 border-slate-200` cho *"Công văn đi"*.
+   - **Phạm vi lưu hành:** Thể hiện rõ *"Lưu hành nội bộ"* hoặc *"Ngoài cơ quan"* bằng chữ hành chính chuẩn mực, cùng kích cỡ `text-xs font-medium` với các thẻ trạng thái và độ khẩn.
+
 ---
 
 ## 6. Cơ chế Phân quyền Điều hướng (Role-based Routing)

@@ -15,7 +15,8 @@ import {
   Eye,
   FileText,
   Calendar,
-  Sparkles
+  Sparkles,
+  ChevronDown
 } from 'lucide-react';
 
 export const DocumentsPage = () => {
@@ -93,7 +94,7 @@ export const DocumentsPage = () => {
 
       {/* Search & Filter Bar */}
       <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs space-y-3">
-        <form onSubmit={handleSearchSubmit} className="flex gap-2">
+        <form onSubmit={handleSearchSubmit} className="flex flex-col sm:flex-row gap-2">
           <div className="relative flex-1">
             <Search className="w-4 h-4 absolute left-3.5 top-3 text-slate-400" />
             <input
@@ -104,68 +105,83 @@ export const DocumentsPage = () => {
               className="w-full h-10 pl-10 pr-4 text-sm rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-primary-600 focus:border-transparent transition-all"
             />
           </div>
-          <button
-            type="submit"
-            className="h-10 px-5 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-sm font-medium transition-all shadow-xs flex items-center justify-center"
-          >
-            Tìm kiếm
-          </button>
-          {hasActiveFilters && (
+          <div className="flex items-center gap-2">
             <button
-              type="button"
-              onClick={handleResetFilters}
-              className="h-10 px-3.5 border border-slate-200 text-slate-600 hover:bg-slate-50 rounded-xl text-xs font-semibold transition-all whitespace-nowrap flex items-center justify-center"
-              title="Xóa bộ lọc"
+              type="submit"
+              className="h-10 px-5 flex-1 sm:flex-none bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-sm font-semibold transition-all shadow-xs flex items-center justify-center space-x-1.5"
             >
-              Đặt lại
+              <Search className="w-3.5 h-3.5 sm:hidden" />
+              <span>Tìm kiếm</span>
             </button>
-          )}
+            {hasActiveFilters && (
+              <button
+                type="button"
+                onClick={handleResetFilters}
+                className="h-10 px-3.5 border border-slate-200 text-slate-600 hover:bg-slate-50 rounded-xl text-xs font-semibold transition-all whitespace-nowrap flex items-center justify-center"
+                title="Xóa bộ lọc"
+              >
+                Đặt lại
+              </button>
+            )}
+          </div>
         </form>
 
         {/* Filter Dropdowns */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2 border-t border-slate-100 text-xs">
-          <select
-            value={docType}
-            onChange={(e) => setDocType(e.target.value)}
-            className="h-10 px-3 rounded-xl border border-slate-200 bg-slate-50 text-slate-700 focus:outline-none focus:ring-1 focus:ring-primary-500 font-medium"
-          >
-            <option value="">Tất cả chiều luân chuyển</option>
-            <option value="INCOMING">Công văn đến</option>
-            <option value="OUTGOING">Công văn đi</option>
-          </select>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-2 border-t border-slate-100 text-xs">
+          <div className="relative">
+            <select
+              value={docType}
+              onChange={(e) => setDocType(e.target.value)}
+              className="w-full h-10 px-3 pr-8 rounded-xl border border-slate-200 bg-slate-50 text-slate-700 focus:outline-none focus:ring-1 focus:ring-primary-500 font-medium appearance-none cursor-pointer"
+            >
+              <option value="">Tất cả chiều luân chuyển</option>
+              <option value="INCOMING">Công văn đến</option>
+              <option value="OUTGOING">Công văn đi</option>
+            </select>
+            <ChevronDown className="w-4 h-4 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+          </div>
 
-          <select
-            value={docScope}
-            onChange={(e) => setDocScope(e.target.value)}
-            className="h-10 px-3 rounded-xl border border-slate-200 bg-slate-50 text-slate-700 focus:outline-none focus:ring-1 focus:ring-primary-500 font-medium"
-          >
-            <option value="">Tất cả phạm vi</option>
-            <option value="EXTERNAL">Ngoài cơ quan</option>
-            <option value="INTERNAL">Nội bộ</option>
-          </select>
+          <div className="relative">
+            <select
+              value={docScope}
+              onChange={(e) => setDocScope(e.target.value)}
+              className="w-full h-10 px-3 pr-8 rounded-xl border border-slate-200 bg-slate-50 text-slate-700 focus:outline-none focus:ring-1 focus:ring-primary-500 font-medium appearance-none cursor-pointer"
+            >
+              <option value="">Tất cả phạm vi</option>
+              <option value="EXTERNAL">Ngoài cơ quan</option>
+              <option value="INTERNAL">Nội bộ</option>
+            </select>
+            <ChevronDown className="w-4 h-4 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+          </div>
 
-          <select
-            value={urgency}
-            onChange={(e) => setUrgency(e.target.value)}
-            className="h-10 px-3 rounded-xl border border-slate-200 bg-slate-50 text-slate-700 focus:outline-none focus:ring-1 focus:ring-primary-500 font-medium"
-          >
-            <option value="">Tất cả độ khẩn</option>
-            <option value="NORMAL">Thường</option>
-            <option value="URGENT">Khẩn</option>
-            <option value="VERY_URGENT">Hỏa tốc</option>
-          </select>
+          <div className="relative">
+            <select
+              value={urgency}
+              onChange={(e) => setUrgency(e.target.value)}
+              className="w-full h-10 px-3 pr-8 rounded-xl border border-slate-200 bg-slate-50 text-slate-700 focus:outline-none focus:ring-1 focus:ring-primary-500 font-medium appearance-none cursor-pointer"
+            >
+              <option value="">Tất cả độ khẩn</option>
+              <option value="NORMAL">Thường</option>
+              <option value="URGENT">Khẩn</option>
+              <option value="VERY_URGENT">Hỏa tốc</option>
+            </select>
+            <ChevronDown className="w-4 h-4 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+          </div>
 
-          <select
-            value={status}
-            onChange={(e) => setStatus(e.target.value)}
-            className="h-10 px-3 rounded-xl border border-slate-200 bg-slate-50 text-slate-700 focus:outline-none focus:ring-1 focus:ring-primary-500 font-medium"
-          >
-            <option value="">Tất cả trạng thái</option>
-            <option value="RECEIVED">Mới tiếp nhận</option>
-            <option value="ASSIGNED">Đã phân công</option>
-            <option value="IN_PROGRESS">Đang xử lý</option>
-            <option value="COMPLETED">Đã hoàn thành</option>
-          </select>
+          <div className="relative">
+            <select
+              value={status}
+              onChange={(e) => setStatus(e.target.value)}
+              className="w-full h-10 px-3 pr-8 rounded-xl border border-slate-200 bg-slate-50 text-slate-700 focus:outline-none focus:ring-1 focus:ring-primary-500 font-medium appearance-none cursor-pointer"
+            >
+              <option value="">Tất cả trạng thái</option>
+              <option value="RECEIVED">Mới tiếp nhận</option>
+              <option value="ASSIGNED">Đã phân công</option>
+              <option value="IN_PROGRESS">Đang xử lý</option>
+              <option value="COMPLETED">Đã hoàn thành</option>
+            </select>
+            <ChevronDown className="w-4 h-4 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+          </div>
         </div>
       </div>
 

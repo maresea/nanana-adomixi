@@ -21,7 +21,12 @@ def extract_metadata_api(
     """
     if not req.document_text.strip():
         raise HTTPException(status_code=400, detail="Nội dung văn bản không được để trống")
-    dto = ai_service.extract_metadata(req.document_text, db=db)
+    dto = ai_service.extract_metadata(
+        req.document_text,
+        db=db,
+        document_scope=req.document_scope,
+        is_internal=req.is_internal
+    )
     return dto
 
 @router.post("/summarize", summary="AI tóm tắt văn bản thành 3-5 ý chính (FR8)")
@@ -35,7 +40,12 @@ def summarize_document_api(
     """
     if not req.document_text.strip():
         raise HTTPException(status_code=400, detail="Nội dung văn bản không được để trống")
-    summary = ai_service.summarize_text(req.document_text, db=db)
+    summary = ai_service.summarize_text(
+        req.document_text,
+        db=db,
+        document_scope=req.document_scope,
+        is_internal=req.is_internal
+    )
     return {"summary": summary}
 
 @router.post("/suggest-classification", response_model=ClassificationDTO, summary="AI gợi ý thể loại & mức độ ưu tiên (FR9)")
@@ -49,7 +59,12 @@ def suggest_classification_api(
     """
     if not req.document_text.strip():
         raise HTTPException(status_code=400, detail="Nội dung văn bản không được để trống")
-    dto = ai_service.suggest_classification(req.document_text, db=db)
+    dto = ai_service.suggest_classification(
+        req.document_text,
+        db=db,
+        document_scope=req.document_scope,
+        is_internal=req.is_internal
+    )
     return dto
 
 @router.post("/generate-draft", summary="AI sinh dự thảo phản hồi theo mẫu hành chính (FR10)")
@@ -63,7 +78,13 @@ def generate_draft_api(
     """
     if not req.document_text.strip():
         raise HTTPException(status_code=400, detail="Nội dung văn bản gốc không được để trống")
-    draft_content = ai_service.generate_draft(req.document_text, req.instruction, db=db)
+    draft_content = ai_service.generate_draft(
+        req.document_text,
+        req.instruction,
+        db=db,
+        document_scope=req.document_scope,
+        is_internal=req.is_internal
+    )
     return {"draft_content": draft_content}
 
 @router.post("/parse-file", summary="Trích xuất nội dung văn bản từ tệp đính kèm (PDF/DOCX/TXT)")

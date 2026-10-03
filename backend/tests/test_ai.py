@@ -99,3 +99,50 @@ def test_ai_anti_hallucination_empty_text(client, clerk_headers, leader_headers,
     r3 = client.post("/api/v1/ai/generate-draft", json={"document_text": "   ", "instruction": "Đồng ý"}, headers=specialist_headers)
     assert r3.status_code == 400
 
+def test_ai_internal_document_local_routing(client, db, clerk_headers, leader_headers, specialist_headers):
+    """TC-AI-05: Công văn nội bộ bắt buộc định tuyến Local AI On-Premise (không gửi Cloud AI)."""
+    from app.models.system import AITaskLog
+
+    # 1. Trích xuất metadata với document_scope="INTERNAL"
+    internal_doc = (
+        "CƠ QUAN NỘI BỘ\n"
+        "Số: 09/TB-NB\n"
+        "Ngày 10 tháng 04 năm 2026\n\n"
+        "V/v kế hoạch đánh giá thi đua nội bộ quý 2."
+    )
+    r1 = client.post(
+        "/api/v1/ai/extract-metadata",
+        json={"document_text": internal_doc, "document_scope": "INTERNAL"},
+        headers=clerk_headers
+    )
+    assert r1.status_code == 200
+    assert "09" in r1.json()["document_number"]
+
+    # 2. Tóm tắt với is_internal=True
+    r2 = client.post(
+        "/api/v1/ai/summarize",
+        json={"document_text": internal_doc, "is_internal": True},
+        headers=leader_headers
+    )
+    assert r2.status_code == 200
+    assert "summary" in r2.json()
+
+    # 3. Soạn thảo phản hồi với từ khóa 'nội bộ' tự nhận diện
+    r3 = client.post(
+        "/api/v1/ai/generate-draft",
+        json={
+            "document_text": "THÔNG BÁO LƯU HÀNH NỘI BỘ: Đề nghị các phòng ban nộp hồ sơ quyết toán.",
+            "instruction": "Phòng Kế toán tổng hợp trước ngày 20/04/2026."
+        },
+        headers=specialist_headers
+    )
+    assert r3.status_code == 200
+
+    # 4. Kiểm tra trong cơ sở dữ liệu kiểm toán AITaskLog đã ghi nhận đúng cờ LOCAL
+    logs = db.query(AITaskLog).order_by(AITaskLog.id.desc()).limit(3).all()
+    logged_task_types = [l.task_type for l in logs]
+    assert "EXTRACT_INTERNAL_LOCAL" in logged_task_types
+    assert "SUMMARIZE_INTERNAL_LOCAL" in logged_task_types
+    assert "DRAFT_INTERNAL_LOCAL" in logged_task_types
+
+

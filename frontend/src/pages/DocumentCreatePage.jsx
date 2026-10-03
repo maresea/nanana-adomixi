@@ -110,9 +110,18 @@ Yêu cầu Thủ trưởng các đơn vị nghiêm túc triển khai thực hi�
     setLoadingAi(true);
     setAiMessage('');
     try {
+      const isInternal = formData.document_scope === 'INTERNAL';
       const [resMeta, resClass] = await Promise.all([
-        apiClient.post('/ai/extract-metadata', { document_text: extractedText }),
-        apiClient.post('/ai/suggest-classification', { document_text: extractedText })
+        apiClient.post('/ai/extract-metadata', {
+          document_text: extractedText,
+          document_scope: formData.document_scope,
+          is_internal: isInternal
+        }),
+        apiClient.post('/ai/suggest-classification', {
+          document_text: extractedText,
+          document_scope: formData.document_scope,
+          is_internal: isInternal
+        })
       ]);
 
       const meta = resMeta.data;
@@ -358,15 +367,57 @@ Yêu cầu Thủ trưởng các đơn vị nghiêm túc triển khai thực hi�
       {/* Form Nhập liệu & Đối soát chính thức */}
       <form onSubmit={handleSubmit} className="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs space-y-5">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-100 pb-3 gap-2">
-          <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider">
-            Thông tin Hồ sơ Công văn
-          </h3>
+          <div className="flex items-center space-x-2">
+            <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider">
+              {formData.document_type === 'OUTGOING' ? 'Thông tin Hồ sơ Công văn Đi' : 'Thông tin Hồ sơ Công văn Đến'}
+            </h3>
+            <span className="text-xs font-medium px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200">
+              {formData.document_scope === 'INTERNAL' ? 'Lưu hành nội bộ' : 'Ngoài cơ quan'}
+            </span>
+          </div>
           <span className="text-xs text-slate-400 font-normal">
             Kiểm tra và hiệu chỉnh lại thông tin trước khi vào sổ chính thức
           </span>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+          <div>
+            <label className="block text-xs font-bold text-slate-700 mb-1">Chiều luân chuyển</label>
+            <div className="relative">
+              <select
+                value={formData.document_type}
+                onChange={(e) => {
+                  const newType = e.target.value;
+                  setFormData({
+                    ...formData,
+                    document_type: newType,
+                    sender_org: newType === 'OUTGOING' && (!formData.sender_org || formData.sender_org.includes('UBND') || formData.sender_org.includes('Sở')) ? 'Văn phòng Cơ quan' : formData.sender_org,
+                  });
+                }}
+                className="w-full px-3.5 py-2.5 pr-9 border border-slate-300 rounded-xl text-sm bg-white font-medium text-slate-800 focus:ring-2 focus:ring-primary-600 focus:outline-none appearance-none cursor-pointer"
+              >
+                <option value="INCOMING">Công văn đến (Cơ quan ngoài / phòng ban gửi đến)</option>
+                <option value="OUTGOING">Công văn đi (Cơ quan ban hành phát hành đi)</option>
+              </select>
+              <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-slate-700 mb-1">Phạm vi lưu hành</label>
+            <div className="relative">
+              <select
+                value={formData.document_scope}
+                onChange={(e) => setFormData({ ...formData, document_scope: e.target.value })}
+                className="w-full px-3.5 py-2.5 pr-9 border border-slate-300 rounded-xl text-sm bg-white font-medium text-slate-800 focus:ring-2 focus:ring-primary-600 focus:outline-none appearance-none cursor-pointer"
+              >
+                <option value="EXTERNAL">Ngoài cơ quan (Liên cơ quan)</option>
+                <option value="INTERNAL">Nội bộ cơ quan (Lưu chuyển nội bộ)</option>
+              </select>
+              <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+            </div>
+          </div>
+
           <div>
             <label className="block text-xs font-bold text-slate-700 mb-1 flex items-center justify-between">
               <div className="flex items-center space-x-1">
@@ -380,7 +431,7 @@ Yêu cầu Thủ trưởng các đơn vị nghiêm túc triển khai thực hi�
               required
               value={formData.document_number}
               onChange={(e) => setFormData({ ...formData, document_number: e.target.value })}
-              placeholder="VD: 125/UBND-VX"
+              placeholder={formData.document_type === 'OUTGOING' ? "VD: 45/QĐ-VP" : "VD: 125/UBND-VX"}
               className={`w-full px-3.5 py-2.5 border rounded-xl text-sm font-mono focus:ring-2 focus:outline-none transition-colors ${getFieldInputClass('document_number')}`}
             />
           </div>
@@ -405,7 +456,11 @@ Yêu cầu Thủ trưởng các đơn vị nghiêm túc triển khai thực hi�
           <div>
             <label className="block text-xs font-bold text-slate-700 mb-1 flex items-center justify-between">
               <div className="flex items-center space-x-1">
-                <span>Cơ quan / Đơn vị gửi</span>
+                <span>
+                  {formData.document_type === 'OUTGOING'
+                    ? (formData.document_scope === 'INTERNAL' ? 'Phòng ban ban hành (Nội bộ)' : 'Đơn vị ban hành (Cơ quan mình)')
+                    : (formData.document_scope === 'INTERNAL' ? 'Phòng ban gửi (Nội bộ)' : 'Cơ quan / Đơn vị gửi đến')}
+                </span>
                 <span className="text-rose-500">*</span>
               </div>
               {renderFieldStatus('sender_org')}
@@ -415,47 +470,58 @@ Yêu cầu Thủ trưởng các đơn vị nghiêm túc triển khai thực hi�
               required
               value={formData.sender_org}
               onChange={(e) => setFormData({ ...formData, sender_org: e.target.value })}
-              placeholder="VD: Ủy ban nhân dân Tỉnh"
+              placeholder={formData.document_type === 'OUTGOING' ? "VD: Văn phòng Ban Giám đốc" : (formData.document_scope === 'INTERNAL' ? "VD: Phòng Tổ chức cán bộ" : "VD: Ủy ban nhân dân Tỉnh")}
               className={`w-full px-3.5 py-2.5 border rounded-xl text-sm focus:ring-2 focus:outline-none transition-colors ${getFieldInputClass('sender_org')}`}
             />
+            {formData.document_scope === 'INTERNAL' && (
+              <div className="mt-1 flex flex-wrap gap-1 items-center">
+                <span className="text-[10px] text-slate-400">Gợi ý chọn nhanh:</span>
+                {['Văn phòng Cơ quan', 'Phòng CNTT', 'Phòng Kế hoạch - Tài chính', 'Phòng Tổ chức cán bộ'].map((dept) => (
+                  <button
+                    key={dept}
+                    type="button"
+                    onClick={() => setFormData({ ...formData, sender_org: dept })}
+                    className="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors"
+                  >
+                    {dept}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           <div>
             <label className="block text-xs font-bold text-slate-700 mb-1">
-              Cơ quan / Đơn vị nhận <span className="text-rose-500">*</span>
+              <span>
+                {formData.document_type === 'OUTGOING'
+                  ? (formData.document_scope === 'INTERNAL' ? 'Phòng ban tiếp nhận (Nội bộ)' : 'Nơi nhận (Kính gửi cơ quan bên ngoài)')
+                  : (formData.document_scope === 'INTERNAL' ? 'Phòng ban tiếp nhận (Nội bộ)' : 'Cơ quan / Đơn vị tiếp nhận')}
+              </span>{' '}
+              <span className="text-rose-500">*</span>
             </label>
             <input
               type="text"
               required
               value={formData.recipient_org}
               onChange={(e) => setFormData({ ...formData, recipient_org: e.target.value })}
-              placeholder="VD: Văn phòng Cơ quan"
+              placeholder={formData.document_type === 'OUTGOING' ? (formData.document_scope === 'INTERNAL' ? "VD: Phòng Kế hoạch - Tài chính" : "VD: Sở Thông tin và Truyền thông") : "VD: Văn phòng Cơ quan"}
               className="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-primary-600 focus:outline-none"
             />
-          </div>
-
-          <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1">Chiều luân chuyển</label>
-            <select
-              value={formData.document_type}
-              onChange={(e) => setFormData({ ...formData, document_type: e.target.value })}
-              className="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl text-sm bg-white"
-            >
-              <option value="INCOMING">Công văn đến</option>
-              <option value="OUTGOING">Công văn đi</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1">Phạm vi lưu hành</label>
-            <select
-              value={formData.document_scope}
-              onChange={(e) => setFormData({ ...formData, document_scope: e.target.value })}
-              className="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl text-sm bg-white"
-            >
-              <option value="EXTERNAL">Ngoài cơ quan</option>
-              <option value="INTERNAL">Nội bộ cơ quan</option>
-            </select>
+            {formData.document_scope === 'INTERNAL' && (
+              <div className="mt-1 flex flex-wrap gap-1 items-center">
+                <span className="text-[10px] text-slate-400">Gợi ý chọn nhanh:</span>
+                {['Văn phòng Cơ quan', 'Phòng CNTT', 'Phòng Kế hoạch - Tài chính', 'Phòng Tổ chức cán bộ'].map((dept) => (
+                  <button
+                    key={dept}
+                    type="button"
+                    onClick={() => setFormData({ ...formData, recipient_org: dept })}
+                    className="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors"
+                  >
+                    {dept}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           <div>
@@ -463,15 +529,18 @@ Yêu cầu Thủ trưởng các đơn vị nghiêm túc triển khai thực hi�
               <span>Độ khẩn</span>
               {renderFieldStatus('urgency')}
             </label>
-            <select
-              value={formData.urgency}
-              onChange={(e) => setFormData({ ...formData, urgency: e.target.value })}
-              className={`w-full px-3.5 py-2.5 border rounded-xl text-sm font-semibold bg-white transition-colors ${getFieldInputClass('urgency')}`}
-            >
-              <option value="NORMAL">Bình thường</option>
-              <option value="URGENT">Khẩn</option>
-              <option value="VERY_URGENT">Hỏa tốc</option>
-            </select>
+            <div className="relative">
+              <select
+                value={formData.urgency}
+                onChange={(e) => setFormData({ ...formData, urgency: e.target.value })}
+                className={`w-full px-3.5 py-2.5 pr-9 border rounded-xl text-sm font-semibold bg-white transition-colors appearance-none cursor-pointer ${getFieldInputClass('urgency')}`}
+              >
+                <option value="NORMAL">Bình thường</option>
+                <option value="URGENT">Khẩn</option>
+                <option value="VERY_URGENT">Hỏa tốc</option>
+              </select>
+              <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+            </div>
           </div>
 
           <div>
@@ -520,7 +589,13 @@ Yêu cầu Thủ trưởng các đơn vị nghiêm túc triển khai thực hi�
             disabled={saving}
             className="px-6 py-2.5 bg-primary-700 hover:bg-primary-800 text-white rounded-xl text-xs font-bold shadow-md shadow-primary-700/20 flex items-center space-x-2 transition-all disabled:opacity-50"
           >
-            <span>{saving ? 'Đang lưu vào sổ...' : 'Xác nhận & Vào sổ Công văn'}</span>
+            <span>
+              {saving
+                ? 'Đang lưu vào sổ...'
+                : formData.document_type === 'OUTGOING'
+                ? 'Lưu & Ban hành công văn đi'
+                : 'Lưu & Vào sổ công văn đến'}
+            </span>
             <ArrowRight className="w-4 h-4" />
           </button>
         </div>

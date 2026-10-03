@@ -16,10 +16,14 @@ class ClassificationDTO(BaseModel):
 
 class SummarizeRequest(BaseModel):
     document_text: str
+    document_scope: Optional[str] = "EXTERNAL"
+    is_internal: Optional[bool] = False
 
 class DraftAIRequest(BaseModel):
     document_text: str
     instruction: str
+    document_scope: Optional[str] = "EXTERNAL"
+    is_internal: Optional[bool] = False
 
 class AIResponse(BaseModel):
     success: bool
